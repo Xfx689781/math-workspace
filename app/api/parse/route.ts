@@ -1,24 +1,26 @@
-// app/api/parse/route.ts
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
-  const { concept } = await req.json();
+  const { query } = await req.json();
 
-  // 这里未来对接 Claude-3.5 或 GPT-4o
-  // 模拟 AI 生成 Lebesgue Measure 的结构化图谱
-  const structuralMap = {
+  // AI 应该生成类似如下的结构数据
+  const graphData = {
     nodes: [
-      { id: '1', label: 'Algebra of Sets', type: 'base' },
-      { id: '2', label: 'Pre-measure $\mu_0$', type: 'construction' },
-      { id: '3', label: 'Outer Measure $\mu^*$', type: 'extension' },
-      { id: '4', label: 'Carathéodory Measurability', type: 'criterion' },
+      { id: 'adj-1', label: 'Hilbert Space $H$', type: 'domain' },
+      { id: 'adj-2', label: 'Linear Map $T: H \to H$', type: 'operator' },
+      { id: 'adj-3', label: 'Adjoint $T^*: \langle Tv, w \rangle = \langle v, T^*w \rangle$', type: 'definition' },
+      { id: 'adj-4', label: 'Self-Adjointness (Spectral Thm)', type: 'insight' }
     ],
     edges: [
-      { id: 'e1-2', source: '1', target: '2', label: 'domain' },
-      { id: 'e2-3', source: '2', target: '3', label: 'infimum' },
-      { id: 'e3-4', source: '3', target: '4', label: 'restriction' },
+      { source: 'adj-1', target: 'adj-2', label: 'supports' },
+      { source: 'adj-2', target: 'adj-3', label: 'unique existence' },
+      { source: 'adj-3', target: 'adj-4', label: 'leads to' }
+    ],
+    proofSteps: [
+      "Step 1: Riesz Representation Theorem ensures existence.",
+      "Step 2: Linear functionals on Hilbert spaces..."
     ]
   };
 
-  return NextResponse.json(structuralMap);
+  return NextResponse.json(graphData);
 }
