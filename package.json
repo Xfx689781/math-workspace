@@ -9,9 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@js-draw/math": "^1.33.0",
+    "@types/katex": "^0.16.8",
+    "mathlive": "^0.109.2",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
