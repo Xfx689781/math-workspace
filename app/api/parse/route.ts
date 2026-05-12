@@ -1,22 +1,17 @@
-import { NextResponse } from 'next/server';
-
+// 后端需要返回结构化的 JSON，告诉前端如何更新画布
 export async function POST(req: Request) {
-  try {
-    const { formula } = await req.json();
+  const { concept } = await req.json();
 
-    // 模拟 AI/数学引擎的灵感生成逻辑
-    let inspiration = "这是一个有趣的结构。";
-    if (formula.includes('^2')) {
-      inspiration = "检测到平方项，建议联想勾股定理或圆的参数方程。";
-    } else if (formula.includes('\\int') || formula.includes('dx')) {
-      inspiration = "这是一个微积分表达式，建议检查其收敛性或尝试分部积分。";
-    }
-
-    return NextResponse.json({ 
-      suggestion: inspiration,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid Request" }, { status: 400 });
-  }
+  // 模拟深度搜索结果：例如输入 "Lebesgue Measure"
+  return Response.json({
+    newNodes: [
+      { id: 'm1', label: 'Carathéodory Extension', position: { x: 400, y: 200 } },
+      { id: 'm2', label: '$\sigma$-algebra of Measurable Sets', position: { x: 400, y: 350 } }
+    ],
+    newEdges: [
+      { source: 'concept', target: 'm1', label: 'construction' },
+      { source: 'm1', target: 'm2', label: 'defines' }
+    ],
+    proofInsight: "The measure is built via pre-measure on a ring, then extended using the outer measure infimum."
+  });
 }
