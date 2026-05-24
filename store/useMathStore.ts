@@ -15,9 +15,9 @@ export interface MathEdge {
   label?: string;
 }
 
-// ⚙️ 抽象出 visualConfig 的类型结构
 export interface VisualConfig {
   type: 'basics-plot' | 'topology-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph';
+  subdomainLabel: string; // 新增：显示精细化的二级学科名称，如 Real Analysis, Commutative Algebra
   data: any;
 }
 
@@ -28,8 +28,7 @@ interface MathStore {
   nodes: MathNode[];
   edges: MathEdge[];
   activeNodeId: string | null;
-  // 【位置 1】在这里声明 visualConfig 类型，允许为 null
-  visualConfig: VisualConfig | null; 
+  visualConfig: VisualConfig | null;
   
   setActiveDomain: (domain: MathSubdomain) => void;
   setQuery: (query: string) => void;
@@ -44,56 +43,59 @@ export const useMathStore = create<MathStore>((set, get) => ({
   nodes: [],
   edges: [],
   activeNodeId: null,
-  // 【位置 2】在这里给定初始状态为 null，防止初始进入时报错
-  visualConfig: null, 
+  visualConfig: null,
 
   setActiveDomain: (domain) => set({ activeDomain: domain }),
   setQuery: (query) => set({ currentQuery: query }),
   
-  // 🚀 升级此处的 setActiveNode，让它在切换节点时，同步更新右侧遥测配置
   setActiveNode: (id) => {
     if (!id) {
       set({ activeNodeId: null, visualConfig: null });
       return;
     }
 
-    let config: any = null;
+    let config: VisualConfig | null = null;
 
-    // 🧪 场景 A：一致收敛 (Uniform Convergence) 节点的详细几何化与形式化配置
-    if (id === 'an0') {
+    // 🧪 场景 A：分析学分支
+    if (id.startsWith('an')) {
+      const isUniform = id === 'an0';
       config = {
         type: 'analysis-space',
-        data: {
+        subdomainLabel: 'REAL ANALYSIS (实分析)', // 二级学科显式声明
+        data: isUniform ? {
           title: "Uniform Convergence (一致收敛)",
           definition: "A sequence of functions \\{f_n\\} converges uniformly to f on E if: \\forall \\varepsilon > 0, \\exists N \\in \\mathbb{N} \\text{ s.t. } n \\ge N \\implies |f_n(x) - f(x)| < \\varepsilon, \\forall x \\in E.",
-          example: "Let f_n(x) = x^n on [0, 1 - \\delta] where 0 < \\delta < 1. It converges uniformly to 0. However, on [0, 1], the convergence is strictly pointwise but NOT uniform.",
-          // 💡 传递给可视化引擎的交互参数：在右侧动态绘制 \\varepsilon-tube 挤压带！
-          interactiveType: 'epsilon-tube',
-          initialEpsilon: 0.25,
-          functionType: 'x_power_n'
-        }
-      };
-    } 
-    // 🧪 场景 B：连续性保持定理的严格证明
-    else if (id === 'an2') {
-      config = {
-        type: 'analysis-space',
-        data: {
+          example: "Let f_n(x) = x^n on [0, 1 - \\delta] where 0 < \\delta < 1. It converges uniformly to 0. On [0, 1], it fails uniform convergence.",
+          interactiveType: 'epsilon-tube'
+        } : {
           title: "Continuity Preservation Theorem",
           definition: "If f_n \\to f uniformly on E, and each f_n is continuous at x_0, then the limit function f is continuous at x_0.",
-          proof: "By 3-\\varepsilon argument: |f(x) - f(x_0)| \\le |f(x) - f_n(x)| + |f_n(x) - f_n(x_0)| + |f_n(x_0) - f(x_0)|. Choose N such that the 1st and 3rd terms < \\varepsilon/3 via uniform convergence, then choose \\delta via continuity of f_N.",
+          proof: "Via 3-\\varepsilon bound: |f(x) - f(x_0)| \\le |f(x) - f_n(x)| + |f_n(x) - f_n(x_0)| + |f_n(x_0) - f(x_0)|.",
+          example: "Counterexample without uniformity: f_n(x) = x^n on [0,1] converges pointwise to a discontinuous step function.",
           interactiveType: 'three-epsilon-slider'
         }
       };
+    } 
+    // 🧪 场景 B：代数学分支
+    else if (id.startsWith('al')) {
+      config = {
+        type: 'algebra-sequence',
+        subdomainLabel: 'COMMUTATIVE ALGEBRA (交换代数 / 同调)',
+        data: {
+          title: "Short Exact Sequence (短正合序列)",
+          definition: "A sequence of R-modules 0 \\xrightarrow{} A \\xrightarrow{f} B \\xrightarrow{g} C \\xrightarrow{} 0 is exact if f is injective, g is surjective, and \\operatorname{Im}(f) = \\operatorname{Ker}(g).",
+          example: "The prototypical non-split sequence: 0 \\to \\mathbb{Z} \\xrightarrow{\\times 2} \\mathbb{Z} \\to \\mathbb{Z}/2\\mathbb{Z} \\to 0."
+        }
+      };
     }
-    // 🧪 场景 C：分离公理 (T2 Hausdorff)
+    // 🧪 场景 C：拓扑学分支
     else if (id.startsWith('t')) {
       config = {
         type: 'topology-3d',
+        subdomainLabel: 'POINT-SET TOPOLOGY (点集拓扑)',
         data: {
           title: "T2 Hausdorff Space Separation",
-          definition: "\\forall x, y \\in X \\text{ with } x \\neq y, \\exists \\text{ open sets } U, V \\text{ s.t. } x \\in U, y \\in V \\text{ and } U \\cap V = \\emptyset.",
-          interactiveType: 'manifold-split'
+          definition: "\\forall x, y \\in X \\text{ with } x \\neq y, \\exists \\text{ open sets } U, V \\text{ s.t. } x \\in U, y \\in V \\text{ and } U \\cap V = \\emptyset."
         }
       };
     }
@@ -106,52 +108,57 @@ export const useMathStore = create<MathStore>((set, get) => ({
     if (!query) return;
 
     set({ isSolving: true, nodes: [], edges: [], activeNodeId: null, visualConfig: null });
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // 🚀 语义路由器：根据输入的学术范畴，强行重定向到正确的 Subdomain
-    if (query.includes('separation') || query.includes('axiom') || query.includes('topology') || query.includes('manifold')) {
+    // 智能化大类语义定位与跳转
+    if (query.includes('separation') || query.includes('axiom') || query.includes('topology')) {
       set({ activeDomain: 'topology' });
-    } else if (query.includes('convergence') || query.includes('uniform') || query.includes('continuity') || query.includes('space')) {
-      set({ activeDomain: 'analysis' }); // 确保 uniform convergence 自动跳入分析学面板！
-    } else if (query.includes('group') || query.includes('ring') || query.includes('morphism') || query.includes('sequence')) {
+    } else if (query.includes('convergence') || query.includes('uniform') || query.includes('continuity') || query.includes('norm')) {
+      set({ activeDomain: 'analysis' });
+    } else if (query.includes('group') || query.includes('ring') || query.includes('exact') || query.includes('algebra')) {
       set({ activeDomain: 'algebra' });
     } else {
       set({ activeDomain: 'basics' });
     }
 
-    // 重新获取已经通过语义路由更新过的领域
     const currentDomain = get().activeDomain;
 
-    // 🚀 根据重定向后的正确学科，下发具有硬核几何/物理直观的科学计算节点，不再是虚无的空话
+    // 🚀 构建纵向、窄屏排列的 DAG 图结构，完美塞进右侧栏
     if (currentDomain === 'analysis') {
       set({
         nodes: [
-          { id: 'an0', type: 'premise', label: 'Definition: Uniform Convergence on E.' },
-          { id: 'an1', type: 'theorem', label: 'Theorem: Cauchy Criterion for Uniform Convergence.' },
-          { id: 'an2', type: 'theorem', label: 'Continuity Preservation: Limit function f is continuous.' }
+          { id: 'an0', type: 'premise', label: 'Def: Uniform Convergence' },
+          { id: 'an1', type: 'theorem', label: 'Theorem: Cauchy Criterion' },
+          { id: 'an2', type: 'theorem', label: 'Continuity Preservation' }
         ],
         edges: [
-          { id: 'ae1', source: 'an0', target: 'an1', label: 'Equivalency' },
+          { id: 'ae1', source: 'an0', target: 'an1', label: 'Equiv' },
           { id: 'ae2', source: 'an1', target: 'an2', label: 'Guarantees' }
         ],
         isSolving: false
       });
-    } else if (currentDomain === 'topology') {
+    } else if (currentDomain === 'algebra') {
       set({
         nodes: [
-          { id: 't0', type: 'premise', label: 'T0 (Kolmogorov): Points are topologically distinguishable.' },
-          { id: 't2', type: 'theorem', label: 'T2 (Hausdorff): Distinct points have disjoint neighborhoods.' },
+          { id: 'al0', type: 'premise', label: 'Def: Module Morphism' },
+          { id: 'al1', type: 'theorem', label: 'Exactness Condition' }
         ],
-        edges: [{ id: 'e1', source: 't0', target: 't2', label: 'Strengthens' }],
+        edges: [{ id: 'ale1', source: 'al0', target: 'al1' }],
         isSolving: false
       });
     } else {
-      // 兜底
       set({
-        nodes: [{ id: 'b0', type: 'premise', label: `Locus: ${get().currentQuery}` }],
-        edges: [],
+        nodes: [
+          { id: 't0', type: 'premise', label: 'T0 Kolmogorov Space' },
+          { id: 't2', type: 'theorem', label: 'T2 Hausdorff Separation' }
+        ],
+        edges: [{ id: 'e1', source: 't0', target: 't2' }],
         isSolving: false
       });
     }
+
+    // 自动默认高亮激活第一个根节点，让正中心主舞台不留空
+    const firstNode = get().nodes[0];
+    if (firstNode) get().setActiveNode(firstNode.id);
   }
 }));
