@@ -1,30 +1,38 @@
 import { create } from 'zustand';
 
-// 定义支持的大类学科领域（去除了 Abstract 偏见，改为干净纯粹的 algebra）
+// 1️⃣ 严格限定数理空间大类
 export type MathSubdomain = 'basics' | 'analysis' | 'topology' | 'algebra' | 'discrete';
 
-// 严格定义 React Flow 需要的有向图节点与边结构
+// 2️⃣ React Flow 统一节点规约
 export interface MathNode {
   id: string;
   type: 'premise' | 'theorem' | 'contradiction';
   label: string;
+  position?: { x: number; y: number }; // 兼容 React Flow 的物理坐标
 }
 
+// 3️⃣ React Flow 统一边线规约
 export interface MathEdge {
   id: string;
   source: string;
   target: string;
   label?: string;
+  animated?: boolean;
 }
 
-// 核心主舞台可视化配置结构体
+// 4️⃣ 主舞台多维几何画布配置规约
 export interface VisualConfig {
-  type: 'basics-plot' | 'analysis-space' | 'topology-3d' | 'algebra-sequence' | 'discrete-graph';
-  subdomainLabel: string; // 显式声明精细化的二级学科，如 Real Analysis, Commutative Algebra
-  data: any;
+  type: 'basics-plot' | 'topology-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph';
+  subdomainLabel: string;
+  data: {
+    title: string;
+    definition: string;
+    example?: string;
+    interactiveType: string;
+  };
 }
 
-// 🛡️ 严格规范的 Store 状态接口定义
+// 5️⃣ 状态机全量接口声明
 interface MathStore {
   activeDomain: MathSubdomain;
   currentQuery: string;
@@ -34,15 +42,23 @@ interface MathStore {
   activeNodeId: string | null;
   visualConfig: VisualConfig | null;
   
-  // 核心控制状态泵
+  // 核心：拓扑内存网格。缓存当前查询下 AI 推演出的所有节点元数据，防止切换节点时反复请求
+  cachedConfigs: Record<string, any>; 
+  subdomainLabel: string;
+
   setActiveDomain: (domain: MathSubdomain) => void;
-  setQuery: (query: string) => void;        // ✅ 确保该方法名字物理存在
-  setCurrentQuery: (query: string) => void; // ✅ 双向绑定备用名，彻底防御组件端的解构红线
+  setQuery: (query: string) => void;
+  setCurrentQuery: (query: string) => void;
   setActiveNode: (id: string | null) => void;
   executeSolver: () => Promise<void>;
+  
+  // 提供给 React Flow 视窗的画布节点数据同步更新器
+  setNodes: (nodes: MathNode[]) => void;
+  setEdges: (edges: MathEdge[]) => void;
 }
 
 export const useMathStore = create<MathStore>((set, get) => ({
+  // 🟢 初始状态
   activeDomain: 'basics',
   currentQuery: '',
   isSolving: false,
@@ -50,125 +66,106 @@ export const useMathStore = create<MathStore>((set, get) => ({
   edges: [],
   activeNodeId: null,
   visualConfig: null,
+  cachedConfigs: {},
+  subdomainLabel: 'Telemetry_Idle',
 
+  // 🔵 基础状态原子写入
   setActiveDomain: (domain) => set({ activeDomain: domain }),
-  
-  // 同时实现两个命名，从根源上斩断 Topbar 的类型冲突
   setQuery: (query) => set({ currentQuery: query }),
   setCurrentQuery: (query) => set({ currentQuery: query }),
   
+  setNodes: (nodes) => set({ nodes }),
+  setEdges: (edges) => set({ edges }),
+  
+  // 🪐 智能寻轨：点击 React Flow 拓扑图节点时触发
   setActiveNode: (id) => {
     if (!id) {
       set({ activeNodeId: null, visualConfig: null });
       return;
     }
 
-    let config: VisualConfig | null = null;
-
-    // 🧪 场景 A：分析学分支 -> 精确制导二级学科
-    if (id.startsWith('an')) {
-      const isUniform = id === 'an0';
-      config = {
-        type: 'analysis-space',
-        subdomainLabel: 'REAL ANALYSIS (实分析)',
-        data: isUniform ? {
-          title: "Uniform Convergence (一致收敛)",
-          definition: "A sequence of functions \\{f_n\\} converges uniformly to f on E if: \\forall \\varepsilon > 0, \\exists N \\in \\mathbb{N} \\text{ s.t. } n \\ge N \\implies |f_n(x) - f(x)| < \\varepsilon, \\forall x \\in E.",
-          example: "Let f_n(x) = x^n on [0, 1 - \\delta] where 0 < \\delta < 1. It converges uniformly to 0.",
-          interactiveType: 'epsilon-tube'
-        } : {
-          title: "Continuity Preservation Theorem",
-          definition: "If f_n \\to f uniformly on E, and each f_n is continuous at x_0, then the limit function f is continuous at x_0.",
-          proof: "Via 3-\\varepsilon bound: |f(x) - f(x_0)| \\le |f(x) - f_n(x)| + |f_n(x) - f_n(x_0)| + |f_n(x_0) - f(x_0)|.",
-          interactiveType: 'three-epsilon-slider'
+    // 从 AI 吐出来的内存缓存包里直接抓取该节点对应的定义、反例与动效类型
+    const cached = get().cachedConfigs[id];
+    if (cached) {
+      set({
+        activeNodeId: id,
+        visualConfig: {
+          type: cached.type,
+          subdomainLabel: get().subdomainLabel,
+          data: {
+            title: cached.title,
+            definition: cached.definition,
+            example: cached.example,
+            interactiveType: cached.interactiveType
+          }
         }
-      };
-    } 
-    // 🧪 场景 B：代数学分支 -> 精确制导二级学科
-    else if (id.startsWith('al')) {
-      config = {
-        type: 'algebra-sequence',
-        subdomainLabel: 'COMMUTATIVE ALGEBRA (交换代数 / 同调)',
-        data: {
-          title: "Short Exact Sequence (短正合序列)",
-          definition: "A sequence of R-modules 0 \\xrightarrow{} A \\xrightarrow{f} B \\xrightarrow{g} C \\xrightarrow{} 0 is exact if f is injective, g is surjective, and \\operatorname{Im}(f) = \\operatorname{Ker}(g).",
-          example: "The prototypical non-split sequence: 0 \\to \\mathbb{Z} \\xrightarrow{\\times 2} \\mathbb{Z} \\to \\mathbb{Z}/2\\mathbb{Z} \\to 0."
-        }
-      };
+      });
+    } else {
+      // 降级防御
+      set({ activeNodeId: id, visualConfig: null });
     }
-    // 🧪 场景 C：拓扑学分支 -> 精确制导二级学科
-    else if (id.startsWith('t')) {
-      config = {
-        type: 'topology-3d',
-        subdomainLabel: 'POINT-SET TOPOLOGY (点集拓扑)',
-        data: {
-          title: "T2 Hausdorff Space Separation",
-          definition: "\\forall x, y \\in X \\text{ with } x \\neq y, \\exists \\text{ open sets } U, V \\text{ s.t. } x \\in U, y \\in V \\text{ and } U \\cap V = \\emptyset."
-        }
-      };
-    }
-
-    set({ activeNodeId: id, visualConfig: config });
   },
 
+  // ⚡ 轰击内核：点击 EXECUTE 按钮时触发的高维数理推演管线
   executeSolver: async () => {
-    const query = get().currentQuery.trim().toLowerCase();
+    const query = get().currentQuery?.trim();
     if (!query) return;
 
-    set({ isSolving: true, nodes: [], edges: [], activeNodeId: null, visualConfig: null });
+    // 唤醒 Loading 遮罩，全量格式化上一轮残存的数据图谱
+    set({ 
+      isSolving: true, 
+      nodes: [], 
+      edges: [], 
+      activeNodeId: null, 
+      visualConfig: null, 
+      cachedConfigs: {} 
+    });
     
-    // 模拟严格推演引擎的计算阻尼感
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      // 物理冲击 Next.js App Router 后端 API 路由
+      const response = await fetch('/api/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
 
-    // 智能语义大类映射路由
-    if (query.includes('separation') || query.includes('axiom') || query.includes('topology')) {
-      set({ activeDomain: 'topology' });
-    } else if (query.includes('convergence') || query.includes('uniform') || query.includes('continuity') || query.includes('analysis')) {
-      set({ activeDomain: 'analysis' });
-    } else if (query.includes('group') || query.includes('ring') || query.includes('exact') || query.includes('algebra')) {
-      set({ activeDomain: 'algebra' });
-    } else {
-      set({ activeDomain: 'basics' });
+      if (!response.ok) {
+        throw new Error('Structural reasoning engine pipeline collapsed.');
+      }
+
+      const blueprint = await response.json();
+
+      // 自动为没有给坐标的节点挂载一个基础的层级拓扑位置（防止 React Flow 节点全部叠在 (0,0) 点）
+      const layoutNodes = (blueprint.nodes || []).map((node: MathNode, index: number) => ({
+        ...node,
+        position: node.position || { x: 100 + index * 250, y: 150 + (index % 2) * 80 }
+      }));
+
+      // 给所有边线默认追加高级丝滑的虚线动画流
+      const animatedEdges = (blueprint.edges || []).map((edge: MathEdge) => ({
+        ...edge,
+        animated: true,
+        style: { stroke: '#3f3f46', strokeWidth: 1.5 }
+      }));
+
+      // 全量同步状态入库
+      set({
+        activeDomain: blueprint.activeDomain || 'basics',
+        subdomainLabel: blueprint.subdomainLabel || 'GENERIC LAB',
+        nodes: layoutNodes,
+        edges: animatedEdges,
+        cachedConfigs: blueprint.visualConfigs || {},
+        isSolving: false
+      });
+
+      // 👑 极致体验：自动激活 AI 推演出的第一个祖先节点，免去用户手动点击节点图的繁琐步子
+      if (layoutNodes.length > 0) {
+        get().setActiveNode(layoutNodes[0].id);
+      }
+
+    } catch (error) {
+      console.error('Reasoning Engine Telemetry Error:', error);
+      set({ isSolving: false });
     }
-
-    const currentDomain = get().activeDomain;
-
-    // 🚀 为右侧栏 Inspector 量身定制的垂直有向无环图（Topological DAG）
-    if (currentDomain === 'analysis') {
-      set({
-        nodes: [
-          { id: 'an0', type: 'premise', label: 'Def: Uniform Convergence' },
-          { id: 'an1', type: 'theorem', label: 'Theorem: Cauchy Criterion' },
-          { id: 'an2', type: 'theorem', label: 'Continuity Preservation' }
-        ],
-        edges: [
-          { id: 'ae1', source: 'an0', target: 'an1', label: 'Equiv' },
-          { id: 'ae2', source: 'an1', target: 'an2', label: 'Guarantees' }
-        ],
-        isSolving: false
-      });
-    } else if (currentDomain === 'algebra') {
-      set({
-        nodes: [
-          { id: 'al0', type: 'premise', label: 'Def: Module Morphism' },
-          { id: 'al1', type: 'theorem', label: 'Exactness Condition' }
-        ],
-        edges: [{ id: 'ale1', source: 'al0', target: 'al1' }],
-        isSolving: false
-      });
-    } else {
-      set({
-        nodes: [
-          { id: 't0', type: 'premise', label: 'T0 Kolmogorov Space' },
-          { id: 't2', type: 'theorem', label: 'T2 Hausdorff Separation' }
-        ],
-        edges: [{ id: 'e1', source: 't0', target: 't2' }],
-        isSolving: false
-      });
-    }
-
-    // 自动高亮首节点，激活正中心主舞台的几何图景
-    const firstNode = get().nodes[0];
-    if (firstNode) get().setActiveNode(firstNode.id);
   }
 }));
