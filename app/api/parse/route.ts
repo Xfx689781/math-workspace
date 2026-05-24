@@ -3,24 +3,22 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   const { query } = await req.json();
 
-  // AI 应该生成类似如下的结构数据
-  const graphData = {
+  // 这里的逻辑应通过 OpenAI API 实现，以下为模拟返回的“高维结构数据”
+  const structuralData = {
     nodes: [
-      { id: 'adj-1', label: 'Hilbert Space $H$', type: 'domain' },
-      { id: 'adj-2', label: 'Linear Map $T: H \to H$', type: 'operator' },
-      { id: 'adj-3', label: 'Adjoint $T^*: \langle Tv, w \rangle = \langle v, T^*w \rangle$', type: 'definition' },
-      { id: 'adj-4', label: 'Self-Adjointness (Spectral Thm)', type: 'insight' }
+      { id: 'm1', label: 'Differentiable Manifold $M$', type: 'core', data: { visualType: '3d-mesh' } },
+      { id: 'm2', label: 'Tangent Bundle $TM$', type: 'derived' },
+      { id: 'm3', label: 'Riemannian Metric $g$', type: 'structure' },
     ],
     edges: [
-      { source: 'adj-1', target: 'adj-2', label: 'supports' },
-      { source: 'adj-2', target: 'adj-3', label: 'unique existence' },
-      { source: 'adj-3', target: 'adj-4', label: 'leads to' }
+      { source: 'm1', target: 'm2', label: 'constructs', animated: true },
+      { source: 'm2', target: 'm3', label: 'equipped with' }
     ],
-    proofSteps: [
-      "Step 1: Riesz Representation Theorem ensures existence.",
-      "Step 2: Linear functionals on Hilbert spaces..."
-    ]
+    proof: {
+      title: "Existence of Riemannian Metric",
+      steps: ["Partition of unity...", "Local coordinates...", "Gluing metrics..."]
+    }
   };
 
-  return NextResponse.json(graphData);
+  return NextResponse.json(structuralData);
 }
