@@ -14,12 +14,16 @@
     "@react-three/fiber": "^9.6.1",
     "@types/katex": "^0.16.8",
     "@types/three": "^0.184.1",
+    "katex": "^0.17.0",
     "mathlive": "^0.109.2",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-katex": "^3.1.0",
+    "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "three": "^0.184.0"
   },
   "devDependencies": {

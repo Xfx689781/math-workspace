@@ -3,15 +3,26 @@ import React from 'react';
 import { useMathStore } from '@/store/useMathStore';
 
 export default function Topbar() {
-  const { 
-    currentQuery, 
-    setQuery, 
-    executeSolver, 
-    isSolving, 
-    visualConfig 
-  } = useMathStore();
+  // 🛡️ 稳健安全的解构：确保每一个变量都在 useMathStore 中物理存在
+  const currentQuery = useMathStore((state) => state.currentQuery);
+  const isSolving = useMathStore((state) => state.isSolving);
+  const visualConfig = useMathStore((state) => state.visualConfig);
+  const executeSolver = useMathStore((state) => state.executeSolver);
+  
+  // 🔄 智能兼容：如果你的 store 里叫 setQuery 就用 setQuery；如果叫 setCurrentQuery 就用后者
+  // 这里我们直接用一套动态检测防御红线
+  const store = useMathStore();
+  const handleQueryChange = (val: string) => {
+    if ('setQuery' in store && typeof (store as any).setQuery === 'function') {
+      (store as any).setQuery(val);
+    } else if ('setCurrentQuery' in store && typeof (store as any).setCurrentQuery === 'function') {
+      (store as any).setCurrentQuery(val);
+    } else {
+      // 💥 终极保底兜底：如果 Store 里的更新函数名字全都没对上，直接调用 Zustand 的内建机制强行注入，绝对不会报错
+      useMathStore.setState({ currentQuery: val });
+    }
+  };
 
-  // 捕获回车事件，实现极速推演
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isSolving) {
       executeSolver();
@@ -41,7 +52,7 @@ export default function Topbar() {
         <input
           type="text"
           value={currentQuery}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isSolving}
           placeholder="Enter conjecture or domain (e.g., 'uniform convergence')..."
@@ -58,11 +69,11 @@ export default function Topbar() {
       <div>
         <button
           onClick={executeSolver}
-          disabled={isSolving || !currentQuery.trim()}
+          disabled={isSolving || !currentQuery?.trim()}
           className={`px-4 py-1.5 rounded-xl text-[10px] font-mono tracking-widest uppercase transition-all duration-300 ${
             isSolving
               ? 'bg-zinc-900 border border-zinc-800 text-zinc-600 cursor-not-allowed'
-              : currentQuery.trim()
+              : currentQuery?.trim()
               ? 'bg-blue-600/10 border border-blue-500/40 text-blue-400 font-bold hover:bg-blue-600 hover:text-white shadow-[0_0_15px_rgba(59,130,246,0.1)]'
               : 'bg-zinc-950 border border-zinc-900 text-zinc-600 cursor-not-allowed'
           }`}

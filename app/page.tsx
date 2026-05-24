@@ -3,7 +3,7 @@ import React from 'react';
 import Sidebar from '@/components/layout/sidebar';
 import Topbar from '@/components/layout/topbar';
 import Inspector from '@/components/layout/inspector';
-import DynamicVisualizer from '@/components/layout/../visualizer/dynamic'; // 绑定中央渲染层
+import DynamicVisualizer from '@/components/visualizer/dynamic'; // ✅ 修正干净的绝对别名路径
 import { useMathStore } from '@/store/useMathStore';
 
 export default function AxiomStudioPage() {
@@ -31,7 +31,7 @@ export default function AxiomStudioPage() {
         </main>
       </div>
 
-      {/* 右侧边栏：现在的 React Flow 垂直导图容器 */}
+      {/* 右侧边栏：React Flow 垂直导图容器 */}
       <Inspector />
     </div>
   );
