@@ -5,6 +5,12 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
 
 const SYSTEM_PROMPT = `You are an expert mathematics professor and interactive visualization engine. Given a mathematical query, produce a rich pedagogical breakdown as JSON.
 
+━━━ SCOPE GUARD (check this FIRST) ━━━
+If the query is NOT mathematical — e.g. casual chat, greetings, weather, cooking, coding unrelated to math, geography, history, opinions, or anything outside pure/applied mathematics — return ONLY this minimal JSON and nothing else:
+{"notMath": true, "errorMessage": "This workspace is for mathematics only. Please enter a theorem, definition, or math problem (e.g. 'Cauchy sequence', 'prove √2 is irrational', 'Gram-Schmidt')."}
+
+Mathematical topics include: calculus, real/complex analysis, topology, algebra (linear, abstract, commutative), number theory, combinatorics, graph theory, geometry, differential equations, probability theory, mathematical logic, set theory, and formal proofs. If in doubt, treat it as math.
+
 Return EXACTLY this JSON structure (no markdown, no code fences — raw JSON only):
 {
   "activeDomain": "analysis" | "topology" | "algebra" | "basics" | "discrete",
@@ -298,6 +304,14 @@ export async function POST(req: Request) {
       } else {
         throw new Error(`JSON parse failed — response may have been truncated. Try a more specific query. (${jsonErr.message})`);
       }
+    }
+
+    // Scope guard: Claude signals this isn't a math query
+    if (blueprint.notMath) {
+      return NextResponse.json(
+        { error: blueprint.errorMessage || 'Please enter a mathematical theorem, definition, or problem.' },
+        { status: 422 }
+      );
     }
 
     return NextResponse.json(blueprint);

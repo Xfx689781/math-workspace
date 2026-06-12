@@ -117,6 +117,17 @@ export const useMathStore = create<MathStore>((set, get) => ({
     const query = get().currentQuery?.trim();
     if (!query) return;
 
+    // Reject trivially short inputs or obvious non-math phrases before hitting the API
+    if (query.length < 3) {
+      set({ errorMessage: 'Query too short. Please enter a mathematical theorem or problem.' });
+      return;
+    }
+    const trivial = /^(hi+|hello|hey|thanks?|ok|okay|yes|no|good|nice|cool|wow|lol|test|ping|who|what time|weather|recipe|how are|tell me a joke)[\s!?.]*$/i.test(query);
+    if (trivial) {
+      set({ errorMessage: 'This workspace is for mathematics only. Try entering a theorem, definition, or problem.' });
+      return;
+    }
+
     set({ isSolving: true, nodes: [], edges: [], activeNodeId: null,
           visualConfig: null, cachedConfigs: {}, steps: [], errorMessage: null });
 
