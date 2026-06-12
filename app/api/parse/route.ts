@@ -89,16 +89,20 @@ STEPS GUIDELINES:
 
 export async function POST(req: Request) {
   try {
-    const { query } = await req.json();
+    const { query, mode } = await req.json();
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
+
+    const modeHint = mode === 'problem'
+      ? '\n\nMODE: Problem Solver — prioritize calculation steps, explicit worked solutions, and "calculation"/"conclusion" step types. The visualization should illustrate the problem setup or result.'
+      : '\n\nMODE: Theorem Prover — prioritize formal definitions, proof structure, and "definition"/"key-step"/"insight" step types. The visualization should illustrate the mathematical concept.';
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-8',
       max_tokens: 4096,
       thinking: { type: 'adaptive' },
-      system: `${SYSTEM_PROMPT}\n\nCRITICAL: Your entire response must be a single valid JSON object. No markdown, no explanation, no code blocks. Just raw JSON.`,
+      system: `${SYSTEM_PROMPT}${modeHint}\n\nCRITICAL: Your entire response must be a single valid JSON object. No markdown, no explanation, no code blocks. Just raw JSON.`,
       messages: [{ role: 'user', content: `Parse and solve: "${query}"` }],
     });
 

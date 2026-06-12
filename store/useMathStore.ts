@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type MathSubdomain = 'basics' | 'analysis' | 'topology' | 'algebra' | 'discrete';
+export type AppMode = 'theorem' | 'problem' | null;
 
 export interface MathNode {
   id: string;
@@ -38,6 +39,7 @@ export interface VisualConfig {
 }
 
 interface MathStore {
+  appMode: AppMode;
   activeDomain: MathSubdomain;
   currentQuery: string;
   isSolving: boolean;
@@ -50,6 +52,7 @@ interface MathStore {
   steps: SolveStep[];
   errorMessage: string | null;
 
+  setAppMode: (mode: AppMode) => void;
   setActiveDomain: (domain: MathSubdomain) => void;
   setQuery: (query: string) => void;
   setCurrentQuery: (query: string) => void;
@@ -61,6 +64,7 @@ interface MathStore {
 }
 
 export const useMathStore = create<MathStore>((set, get) => ({
+  appMode: null,
   activeDomain: 'basics',
   currentQuery: '',
   isSolving: false,
@@ -73,6 +77,7 @@ export const useMathStore = create<MathStore>((set, get) => ({
   steps: [],
   errorMessage: null,
 
+  setAppMode: (mode) => set({ appMode: mode }),
   setActiveDomain: (domain) => set({ activeDomain: domain }),
   setQuery: (query) => set({ currentQuery: query }),
   setCurrentQuery: (query) => set({ currentQuery: query }),
@@ -125,7 +130,7 @@ export const useMathStore = create<MathStore>((set, get) => ({
       const response = await fetch('/api/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, mode: get().appMode }),
       });
 
       const blueprint = await response.json();
