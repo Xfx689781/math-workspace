@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 
 export type MathSubdomain = 'basics' | 'analysis' | 'topology' | 'algebra' | 'discrete';
-export type AppMode = 'theorem' | 'problem' | null;
+export type AppMode = 'theorem' | 'problem' | 'latex' | null;
+export type Language = 'en' | 'zh';
 
 export interface MathNode {
   id: string;
@@ -27,7 +28,7 @@ export interface SolveStep {
 }
 
 export interface VisualConfig {
-  type: 'basics-plot' | 'topology-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph';
+  type: 'basics-plot' | 'topology-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph' | 'set-diagram';
   subdomainLabel: string;
   data: {
     title: string;
@@ -40,6 +41,7 @@ export interface VisualConfig {
 
 interface MathStore {
   appMode: AppMode;
+  language: Language;
   activeDomain: MathSubdomain;
   currentQuery: string;
   isSolving: boolean;
@@ -53,6 +55,7 @@ interface MathStore {
   errorMessage: string | null;
 
   setAppMode: (mode: AppMode) => void;
+  setLanguage: (lang: Language) => void;
   setActiveDomain: (domain: MathSubdomain) => void;
   setQuery: (query: string) => void;
   setCurrentQuery: (query: string) => void;
@@ -65,6 +68,7 @@ interface MathStore {
 
 export const useMathStore = create<MathStore>((set, get) => ({
   appMode: null,
+  language: 'en',
   activeDomain: 'basics',
   currentQuery: '',
   isSolving: false,
@@ -78,6 +82,7 @@ export const useMathStore = create<MathStore>((set, get) => ({
   errorMessage: null,
 
   setAppMode: (mode) => set({ appMode: mode }),
+  setLanguage: (lang) => set({ language: lang }),
   setActiveDomain: (domain) => set({ activeDomain: domain }),
   setQuery: (query) => set({ currentQuery: query }),
   setCurrentQuery: (query) => set({ currentQuery: query }),
@@ -86,10 +91,7 @@ export const useMathStore = create<MathStore>((set, get) => ({
   setErrorMessage: (msg) => set({ errorMessage: msg }),
 
   setActiveNode: (id) => {
-    if (!id) {
-      set({ activeNodeId: null, visualConfig: null });
-      return;
-    }
+    if (!id) { set({ activeNodeId: null, visualConfig: null }); return; }
     const cached = get().cachedConfigs[id];
     if (cached) {
       set({
@@ -115,29 +117,18 @@ export const useMathStore = create<MathStore>((set, get) => ({
     const query = get().currentQuery?.trim();
     if (!query) return;
 
-    set({
-      isSolving: true,
-      nodes: [],
-      edges: [],
-      activeNodeId: null,
-      visualConfig: null,
-      cachedConfigs: {},
-      steps: [],
-      errorMessage: null,
-    });
+    set({ isSolving: true, nodes: [], edges: [], activeNodeId: null,
+          visualConfig: null, cachedConfigs: {}, steps: [], errorMessage: null });
 
     try {
       const response = await fetch('/api/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, mode: get().appMode }),
+        body: JSON.stringify({ query, mode: get().appMode, language: get().language }),
       });
 
       const blueprint = await response.json();
-
-      if (!response.ok) {
-        throw new Error(blueprint.error || 'AI reasoning pipeline failed.');
-      }
+      if (!response.ok) throw new Error(blueprint.error || 'AI reasoning pipeline failed.');
 
       const layoutNodes = (blueprint.nodes || []).map((node: MathNode, index: number) => ({
         ...node,
@@ -145,14 +136,12 @@ export const useMathStore = create<MathStore>((set, get) => ({
       }));
 
       const animatedEdges = (blueprint.edges || []).map((edge: MathEdge) => ({
-        ...edge,
-        animated: true,
-        style: { stroke: '#3f3f46', strokeWidth: 1.5 }
+        ...edge, animated: true, style: { stroke: '#3f3f46', strokeWidth: 1.5 }
       }));
 
       set({
         activeDomain: blueprint.activeDomain || 'basics',
-        subdomainLabel: blueprint.subdomainLabel || 'GENERIC LAB',
+        subdomainLabel: blueprint.subdomainLabel || 'MATHEMATICS',
         nodes: layoutNodes,
         edges: animatedEdges,
         cachedConfigs: blueprint.visualConfigs || {},
@@ -160,16 +149,11 @@ export const useMathStore = create<MathStore>((set, get) => ({
         isSolving: false,
       });
 
-      if (layoutNodes.length > 0) {
-        get().setActiveNode(layoutNodes[0].id);
-      }
+      if (layoutNodes.length > 0) get().setActiveNode(layoutNodes[0].id);
 
     } catch (error: any) {
       console.error('Solver error:', error);
-      set({
-        isSolving: false,
-        errorMessage: error.message || 'Connection failed. Check your API key and network.'
-      });
+      set({ isSolving: false, errorMessage: error.message || 'Connection failed.' });
     }
   }
 }));

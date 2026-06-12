@@ -2,17 +2,24 @@
 import React from 'react';
 import { useMathStore } from '@/store/useMathStore';
 
+const MODE_BADGE = {
+  theorem: { en: 'Theorem', zh: '定理', icon: '∀', cls: 'border-blue-900/50 text-blue-600 bg-blue-950/20' },
+  problem: { en: 'Problem', zh: '解题', icon: '∫', cls: 'border-violet-900/50 text-violet-600 bg-violet-950/20' },
+  latex:   { en: 'LaTeX',   zh: 'LaTeX', icon: 'Σ', cls: 'border-emerald-900/50 text-emerald-600 bg-emerald-950/20' },
+};
+
 export default function Topbar() {
-  const appMode      = useMathStore(s => s.appMode);
-  const setAppMode   = useMathStore(s => s.setAppMode);
-  const errorMessage = useMathStore(s => s.errorMessage);
-  const visualConfig = useMathStore(s => s.visualConfig);
-  const isSolving    = useMathStore(s => s.isSolving);
-  const currentQuery = useMathStore(s => s.currentQuery);
+  const appMode       = useMathStore(s => s.appMode);
+  const setAppMode    = useMathStore(s => s.setAppMode);
+  const language      = useMathStore(s => s.language);
+  const setLanguage   = useMathStore(s => s.setLanguage);
+  const errorMessage  = useMathStore(s => s.errorMessage);
+  const visualConfig  = useMathStore(s => s.visualConfig);
+  const isSolving     = useMathStore(s => s.isSolving);
+  const currentQuery  = useMathStore(s => s.currentQuery);
   const executeSolver = useMathStore(s => s.executeSolver);
 
-  // Show input bar in topbar once a result exists, while loading, or on error (so user can retry)
-  const showInput = !!(visualConfig || isSolving || errorMessage);
+  const showInput = appMode !== 'latex' && !!(visualConfig || isSolving || errorMessage);
 
   const handleBack = () => {
     setAppMode(null);
@@ -25,6 +32,10 @@ export default function Topbar() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isSolving) executeSolver();
   };
+
+  const badge = appMode && appMode !== 'latex' && appMode in MODE_BADGE
+    ? MODE_BADGE[appMode as 'theorem' | 'problem' | 'latex']
+    : appMode === 'latex' ? MODE_BADGE.latex : null;
 
   return (
     <header className="w-full bg-[#070708] border-b border-zinc-900 z-10 shrink-0">
@@ -43,7 +54,7 @@ export default function Topbar() {
             className="group flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 transition-colors font-mono text-[10px] uppercase tracking-widest"
           >
             <span className="inline-block group-hover:-translate-x-0.5 transition-transform">←</span>
-            <span>Back</span>
+            <span>{language === 'zh' ? '返回' : 'Back'}</span>
           </button>
           <div className="w-px h-4 bg-zinc-800" />
           <div className="flex items-center gap-2 select-none">
@@ -54,7 +65,7 @@ export default function Topbar() {
           </div>
         </div>
 
-        {/* Center: input — only when active */}
+        {/* Center: search input (math modes only, when active) */}
         <div className="flex-1 flex items-center gap-2">
           {showInput && (
             <>
@@ -78,24 +89,35 @@ export default function Topbar() {
                 }`}
               >
                 {isSolving
-                  ? <span className="flex items-center gap-1.5"><span className="w-2 h-2 border border-t-transparent border-zinc-500 rounded-full animate-spin inline-block" /><span>Solving</span></span>
-                  : 'Run'}
+                  ? <span className="flex items-center gap-1.5"><span className="w-2 h-2 border border-t-transparent border-zinc-500 rounded-full animate-spin inline-block" /><span>{language === 'zh' ? '计算中' : 'Solving'}</span></span>
+                  : (language === 'zh' ? '运行' : 'Run')}
               </button>
             </>
           )}
         </div>
 
-        {/* Right: mode badge */}
-        {appMode && (
-          <div className={`shrink-0 flex items-center gap-2 px-3 py-1 rounded-lg border text-[10px] font-mono tracking-widest uppercase ${
-            appMode === 'theorem'
-              ? 'border-blue-900/50 text-blue-600 bg-blue-950/20'
-              : 'border-violet-900/50 text-violet-600 bg-violet-950/20'
-          }`}>
-            <span>{appMode === 'theorem' ? '∀' : '∫'}</span>
-            <span>{appMode === 'theorem' ? 'Theorem' : 'Problem'}</span>
+        {/* Right: language toggle + mode badge */}
+        <div className="shrink-0 flex items-center gap-2">
+          {/* Language toggle */}
+          <div className="flex items-center gap-0.5 bg-zinc-950 border border-zinc-800/60 rounded-md p-0.5">
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-2 py-0.5 rounded text-[9px] font-mono tracking-widest uppercase transition-all ${language === 'en' ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-600 hover:text-zinc-400'}`}
+            >EN</button>
+            <button
+              onClick={() => setLanguage('zh')}
+              className={`px-2 py-0.5 rounded text-[9px] font-mono tracking-widest transition-all ${language === 'zh' ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-600 hover:text-zinc-400'}`}
+            >中文</button>
           </div>
-        )}
+
+          {/* Mode badge */}
+          {badge && (
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono tracking-widest uppercase ${badge.cls}`}>
+              <span>{badge.icon}</span>
+              <span>{language === 'zh' ? badge.zh : badge.en}</span>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
