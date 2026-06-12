@@ -8,6 +8,8 @@ import AlgebraVisualizer from './algebra';
 import AnalysisVisualizer from './analysis';
 import DiscreteVisualizer from './discrete';
 import SetDiagramVisualizer from './setdiagram';
+import RiemannSumVisualizer from './riemannsum';
+import EpsilonDeltaVisualizer from './epsilondelta';
 
 const EN = {
   heroTheorem: 'What theorem shall we explore?',
@@ -136,6 +138,8 @@ function renderCanvas(type: string, data: any) {
     case 'analysis-space':   return <AnalysisVisualizer data={data} />;
     case 'discrete-graph':   return <DiscreteVisualizer data={data} />;
     case 'set-diagram':      return <SetDiagramVisualizer data={data} />;
+    case 'riemann-sum':     return <RiemannSumVisualizer data={data} />;
+    case 'epsilon-delta':   return <EpsilonDeltaVisualizer data={data} />;
     default: return <div className="p-4 text-[10px] font-mono text-zinc-600">Unknown type: {type}</div>;
   }
 }

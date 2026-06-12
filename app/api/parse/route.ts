@@ -36,50 +36,93 @@ Return EXACTLY this JSON structure (no markdown, no code fences — raw JSON onl
   }
 }
 
-━━━ VISUALIZATION SELECTION — CRITICAL ━━━
-Choose the visualizer type that directly illustrates the mathematical concept.
+━━━ VISUALIZATION SELECTION — DECISION TREE (first matching rule wins) ━━━
 
-"set-diagram" → ANY topology about sets: compactness, Heine-Borel, open/closed sets, open covers,
-  bounded sets, connectedness, metric balls, neighborhoods, Bolzano-Weierstrass, Baire category.
-  MANDATORY for any theorem about compact/closed/bounded sets in ℝⁿ.
+RULE 1 — RIEMANN INTEGRATION  → type: "riemann-sum"
+  Use when query involves ANY of: Riemann sums, Darboux sums, upper/lower sums,
+  Riemann integrability criterion, oscillation of f, mesh of partition, norm ‖P‖,
+  integrability of continuous/monotone functions, computing ∫ as a limit of sums,
+  the Riemann integral definition, area under a curve.
+  EXAMPLES: "Riemann Integrability Criterion", "Darboux sums", "∫₀¹ x² dx",
+  "every continuous function on [a,b] is Riemann integrable", "Riemann sum definition".
 
-"topology-3d" → ONLY actual surface/manifold topology: Möbius strip, torus, Klein bottle,
-  projective plane, manifold genus, surface classification, Euler characteristic of surfaces.
-  DO NOT use for Heine-Borel, compactness, or any theorem about subsets of ℝⁿ.
+RULE 2 — EPSILON-DELTA LIMITS / CONTINUITY  → type: "epsilon-delta"
+  Use when query involves ANY of: ε-δ definition of a limit, continuity at a point,
+  uniform continuity, lim_{x→a} f(x) = L, δ-neighborhood, sequential continuity,
+  the definition of a limit.
+  EXAMPLES: "ε-δ definition of continuity", "lim x→2 of x²", "uniform continuity on [a,b]".
 
-"analysis-space" → Convergence and limits: epsilon-delta, uniform vs pointwise convergence,
-  Cauchy sequences, function families parametrized by n.
+RULE 3 — TOPOLOGY OF SETS IN ℝⁿ  → type: "set-diagram"
+  Use when query involves ANY of: compactness, Heine-Borel, open covers, finite subcovers,
+  closed sets, bounded sets, Bolzano-Weierstrass, Baire category, metric balls, neighborhoods,
+  connectedness, open/closed sets in ℝⁿ.
+  EXAMPLES: "Heine-Borel theorem", "compactness", "Bolzano-Weierstrass".
 
-"basics-plot" → Functions of one variable: derivatives, integrals, Taylor series, roots, extrema,
-  IVT illustrated on a curve.
+RULE 4 — SURFACE / MANIFOLD TOPOLOGY  → type: "topology-3d"
+  Use ONLY when query involves surfaces or manifolds: Möbius strip, torus, Klein bottle,
+  sphere, manifold genus, surface classification, Euler characteristic.
+  DO NOT use for Heine-Borel, compactness, or sets in ℝⁿ.
 
-"algebra-sequence" → Algebraic structures: exact sequences, commutative diagrams, homomorphisms,
+RULE 5 — SEQUENCES OF FUNCTIONS  → type: "analysis-space"
+  Use when query involves a PARAMETRIC FAMILY f_n(x) converging to a limit function:
+  uniform vs pointwise convergence of {f_n}, convergence of function sequences.
+  EXAMPLES: "f_n(x) = x^n on [0,1]", "uniform convergence", "pointwise convergence".
+  NOT for sequences of numbers. NOT for limits lim_{x→a}.
+
+RULE 6 — ALGEBRAIC STRUCTURES  → type: "algebra-sequence"
+  Use for: groups, rings, fields, exact sequences, commutative diagrams, homomorphisms,
   functors, natural transformations, short exact sequences.
 
-"discrete-graph" → Graph theory, trees, networks, combinatorics, planar graphs, coloring.
+RULE 7 — GRAPH THEORY  → type: "discrete-graph"
+  Use for: graphs, trees, networks, planar graphs, graph coloring, Euler path.
+
+RULE 8 — SINGLE FUNCTION (last resort)  → type: "basics-plot"
+  Use ONLY when rules 1–7 do not match: derivatives, tangent lines, Taylor series,
+  roots/extrema, IVT/MVT/Rolle's illustrated on a curve.
+  NEVER use for integration (use riemann-sum), NEVER for ε-δ limits (use epsilon-delta).
 
 ━━━ PARAMS SCHEMA ━━━
+
+For "riemann-sum":
+  "params": {
+    "fnExpression": "x**2",
+    "domain": [0, 1],
+    "n": 6,
+    "sumType": "upper",
+    "label": "f(x) = x²",
+    "note": "As n → ∞, U(f,P) − L(f,P) → 0: Riemann integrability criterion satisfied"
+  }
+  fnExpression: same syntax as basics-plot. sumType: "upper" | "lower" | "left" | "right" | "midpoint".
+  Choose domain to match the integral. Choose fnExpression that is the function being integrated.
+
+For "epsilon-delta":
+  "params": {
+    "fnExpression": "x**2",
+    "a": 2,
+    "L": 4,
+    "domain": [0, 4],
+    "epsilon": 1.0,
+    "delta": 0.45,
+    "note": "Choose δ = min(1, ε/5): then 0 < |x-2| < δ ⟹ |x²-4| < ε"
+  }
+  "a" is the point, "L" is the limit value (compute L = f(a) for continuous f).
+  "domain" should bracket [a−2.5, a+2.5]. "delta" should be a valid δ for the given ε.
 
 For "set-diagram":
   "params": {
     "setType": "closed-disk" | "closed-rect",
     "centerX": 0, "centerY": 0, "radius": 1.0,
     "coverBalls": [
-      {"cx": -0.7, "cy":  0.7, "r": 0.8},
-      {"cx":  0.7, "cy":  0.7, "r": 0.8},
-      {"cx": -0.7, "cy": -0.7, "r": 0.8},
-      {"cx":  0.7, "cy": -0.7, "r": 0.8},
-      {"cx":  0.0, "cy":  1.3, "r": 0.6},
-      {"cx":  0.0, "cy": -1.3, "r": 0.6},
-      {"cx":  1.4, "cy":  0.0, "r": 0.5},
-      {"cx": -1.4, "cy":  0.0, "r": 0.5}
+      {"cx": -0.7, "cy":  0.7, "r": 0.8}, {"cx":  0.7, "cy":  0.7, "r": 0.8},
+      {"cx": -0.7, "cy": -0.7, "r": 0.8}, {"cx":  0.7, "cy": -0.7, "r": 0.8},
+      {"cx":  0.0, "cy":  1.3, "r": 0.6}, {"cx":  0.0, "cy": -1.3, "r": 0.6},
+      {"cx":  1.4, "cy":  0.0, "r": 0.5}, {"cx": -1.4, "cy":  0.0, "r": 0.5}
     ],
     "finiteSubcover": [0, 1, 2, 3],
     "label": "K = \\\\overline{B}(0,1) \\\\subseteq \\\\mathbb{R}^2",
     "note": "4 open balls suffice — Heine-Borel: closed + bounded ⟹ compact"
   }
-  RULES: coverBalls must actually COVER the full set K. finiteSubcover indices must also fully cover K.
-  Use 6–10 balls for full cover, 3–5 for finite subcover.
+  RULES: coverBalls must actually COVER the full set K. finiteSubcover must also fully cover K.
 
 For "basics-plot":
   "params": { "fnExpression": "sin(x)", "domain": [-6.28, 6.28], "yRange": [-1.5, 1.5] }
@@ -95,10 +138,8 @@ For "algebra-sequence":
   "params": {
     "objects": ["0", "A", "B", "C", "0"],
     "morphisms": [
-      {"from": 0, "to": 1, "label": "0"},
-      {"from": 1, "to": 2, "label": "i"},
-      {"from": 2, "to": 3, "label": "\\\\pi"},
-      {"from": 3, "to": 4, "label": "0"}
+      {"from": 0, "to": 1, "label": "0"}, {"from": 1, "to": 2, "label": "i"},
+      {"from": 2, "to": 3, "label": "\\\\pi"}, {"from": 3, "to": 4, "label": "0"}
     ],
     "isExact": true, "label": "Short Exact Sequence"
   }
