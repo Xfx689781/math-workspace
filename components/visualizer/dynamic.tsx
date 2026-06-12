@@ -10,6 +10,8 @@ import DiscreteVisualizer from './discrete';
 import SetDiagramVisualizer from './setdiagram';
 import RiemannSumVisualizer from './riemannsum';
 import EpsilonDeltaVisualizer from './epsilondelta';
+import LevelSetVisualizer from './levelset';
+import GramSchmidtVisualizer from './gramschmidt';
 
 const EN = {
   heroTheorem: 'What theorem shall we explore?',
@@ -137,6 +139,8 @@ function renderCanvas(type: string, data: any) {
     case 'set-diagram':      return <SetDiagramVisualizer data={data} />;
     case 'riemann-sum':      return <RiemannSumVisualizer data={data} />;
     case 'epsilon-delta':    return <EpsilonDeltaVisualizer data={data} />;
+    case 'level-set':        return <LevelSetVisualizer data={data} />;
+    case 'gram-schmidt':     return <GramSchmidtVisualizer data={data} />;
     default: return null;
   }
 }

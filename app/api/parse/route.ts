@@ -66,6 +66,20 @@ RULE 2 — EPSILON-DELTA LIMITS / CONTINUITY  → type: "epsilon-delta"
   the definition of a limit.
   EXAMPLES: "ε-δ definition of continuity", "lim x→2 of x²", "uniform continuity on [a,b]".
 
+RULE 2b — IMPLICIT FUNCTIONS / LEVEL SETS  → type: "level-set"
+  Use when query involves ANY of: implicit function theorem (隐函数定理), implicit curves,
+  level sets F(x,y) = c, level curves, contour lines, gradient perpendicular to level sets,
+  local resolution of an implicit equation to y=g(x), implicit differentiation as geometry.
+  EXAMPLES: "implicit function theorem", "隐函数定理", "level set F(x,y)=0",
+  "gradient is normal to level curves", "locally express y as a function of x".
+
+RULE 2c — GRAM-SCHMIDT / ORTHOGONAL PROJECTION  → type: "gram-schmidt"
+  Use when query involves ANY of: Gram-Schmidt orthogonalization (Schmidt正交化 / 格拉姆-施密特),
+  constructing an orthonormal basis, orthogonal projection onto a subspace,
+  QR decomposition, expressing a vector as sum of orthogonal components.
+  EXAMPLES: "Gram-Schmidt process", "Schmidt正交化", "格拉姆-施密特",
+  "orthonormal basis from linearly independent vectors", "QR decomposition".
+
 RULE 3 — TOPOLOGY OF SETS IN ℝⁿ  → type: "set-diagram"
   Use when query involves ANY of: compactness, Heine-Borel, open covers, finite subcovers,
   closed sets, bounded sets, Bolzano-Weierstrass, Baire category, metric balls, neighborhoods,
@@ -90,10 +104,11 @@ RULE 6 — ALGEBRAIC STRUCTURES  → type: "algebra-sequence"
 RULE 7 — GRAPH THEORY  → type: "discrete-graph"
   Use for: graphs, trees, networks, planar graphs, graph coloring, Euler path.
 
-RULE 8 — SINGLE FUNCTION (last resort)  → type: "basics-plot"
-  Use ONLY when rules 1–7 do not match: derivatives, tangent lines, Taylor series,
+RULE 8 — SINGLE FUNCTION OF x (last resort)  → type: "basics-plot"
+  Use ONLY for a function of ONE variable x: derivatives, tangent lines, Taylor series,
   roots/extrema, IVT/MVT/Rolle's illustrated on a curve.
-  NEVER use for integration (use riemann-sum), NEVER for ε-δ limits (use epsilon-delta).
+  NEVER use for: integration (→ riemann-sum), ε-δ limits (→ epsilon-delta),
+  implicit functions of TWO variables (→ level-set), Gram-Schmidt (→ gram-schmidt).
 
 ━━━ PARAMS SCHEMA ━━━
 
@@ -121,6 +136,31 @@ For "epsilon-delta":
   }
   "a" is the point, "L" is the limit value (compute L = f(a) for continuous f).
   "domain" should bracket [a−2.5, a+2.5]. "delta" should be a valid δ for the given ε.
+
+For "level-set":
+  "params": {
+    "fnExpression": "x**2 + y**2",
+    "level": 1,
+    "domain": [[-2, 2], [-2, 2]],
+    "a": 0.6,
+    "b": 0.8,
+    "label": "F(x,y) = x² + y²",
+    "note": "At (0.6,0.8), ∂F/∂y = 1.6 ≠ 0 — IFT: circle is locally y = g(x)"
+  }
+  fnExpression: expression in x and y (both variables). Use **, sin, cos, exp, sqrt, etc.
+  level: the value c so we draw F(x,y) = level.
+  domain: [[xMin,xMax],[yMin,yMax]] — symmetric ranges that show the full curve.
+  a,b: initial point to highlight, ideally on or near the curve.
+  EXAMPLES: circle → "x**2 + y**2", level=1; parabola → "y - x**2", level=0.
+
+For "gram-schmidt":
+  "params": {
+    "vectors": [[1.5, 0.4], [0.4, 1.5]],
+    "labels": ["v₁", "v₂"],
+    "note": "e₁ = v₁/‖v₁‖, e₂ = normalize(v₂ − ⟨v₂,e₁⟩e₁)"
+  }
+  vectors: array of 2 vectors in ℝ², each [x, y]. Keep magnitudes in [0.5, 2.2].
+  labels: display names for the input vectors.
 
 For "set-diagram":
   "params": {
@@ -210,7 +250,7 @@ export async function POST(req: Request) {
     if (!query) return NextResponse.json({ error: 'Query is required' }, { status: 400 });
 
     const languageRule = language === 'zh'
-      ? '\n\nLANGUAGE: Chinese mode. subdomainLabel format: "TOPOLOGY (拓扑学)", "ANALYSIS (实分析)", etc. — English name followed by Chinese in parentheses. Step bodies in English; key terms may include Chinese translations.'
+      ? '\n\nLANGUAGE: Chinese mode (中文模式). ALL text output MUST be in Simplified Chinese — this means EVERY step title, EVERY step body, EVERY definition, EVERY example, ALL notes, ALL labels, ALL explanations. Write as a Chinese mathematics professor for Chinese-speaking students. Mathematical notation and LaTeX expressions stay in LaTeX as-is. subdomainLabel format: "TOPOLOGY (拓扑学)" — English name followed by Chinese translation in parentheses. ZERO English prose anywhere except inside LaTeX math blocks.'
       : '\n\nLANGUAGE: English mode. ALL text must be English only. subdomainLabel must be English only: "TOPOLOGY", "REAL ANALYSIS", "ALGEBRA", etc. ZERO Chinese characters anywhere in the response.';
 
     const modeHint = mode === 'problem'
