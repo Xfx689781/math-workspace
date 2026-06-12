@@ -3,10 +3,10 @@ import React from 'react';
 import { useMathStore } from '@/store/useMathStore';
 
 export default function Topbar() {
-  // 🛡️ 稳健安全的解构：确保每一个变量都在 useMathStore 中物理存在
   const currentQuery = useMathStore((state) => state.currentQuery);
   const isSolving = useMathStore((state) => state.isSolving);
   const visualConfig = useMathStore((state) => state.visualConfig);
+  const errorMessage = useMathStore((state) => state.errorMessage);
   const executeSolver = useMathStore((state) => state.executeSolver);
   
   // 🔄 智能兼容：如果你的 store 里叫 setQuery 就用 setQuery；如果叫 setCurrentQuery 就用后者
@@ -30,7 +30,14 @@ export default function Topbar() {
   };
 
   return (
-    <header className="h-14 w-full bg-[#070708] border-b border-zinc-900 px-6 flex items-center justify-between z-10 shrink-0">
+    <header className="w-full bg-[#070708] border-b border-zinc-900 z-10 shrink-0">
+      {errorMessage && (
+        <div className="px-6 py-1.5 bg-rose-950/30 border-b border-rose-900/40 text-[10px] font-mono text-rose-400 flex items-center gap-2">
+          <span className="text-rose-500">✕</span>
+          {errorMessage}
+        </div>
+      )}
+    <div className="h-14 px-6 flex items-center justify-between">
       {/* 🧭 左侧：动态面包屑拓扑航线 */}
       <div className="flex items-center space-x-2 select-none">
         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -88,6 +95,7 @@ export default function Topbar() {
           )}
         </button>
       </div>
+    </div>
     </header>
   );
 }

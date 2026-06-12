@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// 初始化客户端。如果要用 DeepSeek，可以加上 baseURL: "https://api.deepseek.com/v1"
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
@@ -13,61 +12,113 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    // 🪐 物理定轨：调用大模型，并强制开启 json_object 模式
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o', // 或者切换为 deepseek-chat 等具备强数理逻辑的模型
+      model: 'gpt-4o',
       response_format: { type: 'json_object' },
-      temperature: 0.1, // 极低温度，确保生成的数学结构稳定，不胡说八道
+      temperature: 0.1,
       messages: [
         {
           role: 'system',
-          content: `You are an advanced Structuralist Mathematics Reasoning Engine. 
-Your task is to parse a mathematical term/query, determine its exact mathematical subdomain, and build a localized directed acyclic graph (DAG) of definitions, theorems, or obstructions.
+          content: `You are an expert mathematics professor and visualization engine. Given a mathematical query (theorem, concept, or problem to solve), produce a rich pedagogical breakdown.
 
-CRITICAL JSON FORMAT RULE:
-You must respond with a clean, valid JSON object matching this exact structure:
+Return EXACTLY this JSON structure:
 {
-  "activeDomain": "analysis",
+  "activeDomain": "analysis" | "topology" | "algebra" | "basics" | "discrete",
   "subdomainLabel": "REAL ANALYSIS (实分析)",
   "nodes": [
-    { "id": "n1", "type": "premise", "label": "Short Title" },
-    { "id": "n2", "type": "theorem", "label": "Theorem Title" }
+    { "id": "n1", "type": "premise" | "theorem" | "contradiction", "label": "Short Title (≤5 words)" }
   ],
   "edges": [
-    { "id": "e1", "source": "n1", "target": "n2", "label": "implies" }
+    { "id": "e1", "source": "n1", "target": "n2", "label": "implies" | "requires" | "contradicts" }
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "stepNumber": 1,
+      "type": "setup" | "definition" | "key-step" | "calculation" | "conclusion" | "insight",
+      "title": "Concise step title",
+      "body": "Full mathematical explanation. Use $$ ... $$ for ALL math. Example: We need $$ \\delta > 0 $$ such that $$ |x - a| < \\delta \\implies |f(x) - L| < \\varepsilon $$."
+    }
   ],
   "visualConfigs": {
     "n1": {
-      "type": "analysis-space",
+      "type": "analysis-space" | "basics-plot" | "topology-3d" | "algebra-sequence" | "discrete-graph",
       "title": "Full Node Name",
-      "definition": "Rigorous description with LaTeX wrapped in double dollar signs, e.g., 'A sequence $$ \\\\{f_n\\\\} $$ converges...'.",
-      "example": "Counter-example or example with LaTeX wrapped in double dollar signs.",
-      "interactiveType": "epsilon-tube"
+      "definition": "Rigorous definition with LaTeX in $$ ... $$",
+      "example": "Concrete example or counterexample with LaTeX in $$ ... $$",
+      "interactiveType": "epsilon-tube" | "function-plot" | "commutative-diagram" | "graph-view" | "3d-surface",
+      "params": {}
     }
   }
 }
 
-CRITICAL LATEX RENDERING RULE:
-- In the "definition" and "example" fields, all mathematical symbols, expressions, and functions MUST be wrapped in double dollar signs ($$ ... $$) so the frontend Markdown compiler can detect them.
-- Example: Use "$$ \\\\forall \\\\varepsilon > 0 $$" instead of raw text. 
-- Ensure all backslashes inside JSON strings are properly escaped as double backslashes (\\\\) or quadruple backslashes (\\\\\\\\) so the JSON parsing doesn't break.`
+PARAMS SCHEMA by visualizer type:
+
+For "basics-plot":
+  "params": { "fnExpression": "sin(x)", "domain": [-6.28, 6.28], "yRange": [-1.5, 1.5] }
+  fnExpression uses: sin, cos, tan, exp, ln, sqrt, abs, ^, pi, e
+  Examples: "x^3 - x", "sin(x)/x", "exp(-x^2)", "1/(1+x^2)"
+
+For "analysis-space" (interactiveType "epsilon-tube"):
+  "params": { "fnExpression": "x^n", "limitFn": "0", "domain": [0, 1], "note": "pointwise not uniform" }
+  fnExpression is a family parametrized by n (use literal "n" in expression)
+
+For "topology-3d":
+  "params": { "shape": "torus" | "sphere" | "mobius", "color": "#2563eb", "label": "T^2" }
+
+For "algebra-sequence":
+  "params": {
+    "objects": ["0", "A", "B", "C", "0"],
+    "morphisms": [
+      {"from": 0, "to": 1, "label": "0"},
+      {"from": 1, "to": 2, "label": "i"},
+      {"from": 2, "to": 3, "label": "\\pi"},
+      {"from": 3, "to": 4, "label": "0"}
+    ],
+    "isExact": true,
+    "label": "Short Exact Sequence"
+  }
+
+For "discrete-graph":
+  "params": {
+    "nodes": [{"id": "v0", "label": "A"}, {"id": "v1", "label": "B"}],
+    "edges": [{"from": "v0", "to": "v1", "label": "e", "weight": 1}],
+    "graphType": "directed" | "undirected",
+    "label": "Graph Name"
+  }
+
+LATEX RULES (critical):
+- ALL math MUST be in $$ ... $$ (double dollar signs)
+- In JSON strings, backslash is \\ (double). So \\forall, \\varepsilon, \\mathbb{R}, \\frac{a}{b}
+- Example correct: "$$ \\forall \\varepsilon > 0, \\exists N \\in \\mathbb{N} $$"
+- Never use single $ signs
+- Never leave math symbols unformatted
+
+STEPS GUIDELINES:
+- Provide 4–7 steps for any non-trivial theorem or problem
+- Each step body should explain WHY the step works, not just state it
+- "insight" type steps should give geometric or intuitive explanations
+- "calculation" type steps should show explicit computation
+- For a problem/exercise query: treat it as a worked example with full solution steps`
         },
         {
           role: 'user',
-          content: `Execute axiomatic semantic expansion for: "${query}"`
+          content: `Parse and solve: "${query}"`
         }
       ]
     });
 
     const rawContent = response.choices[0]?.message?.content;
-    if (!rawContent) throw new Error('Empty response from reasoning core.');
+    if (!rawContent) throw new Error('Empty response from AI.');
 
-    // 解析出高维数学蓝图 JSON
     const blueprint = JSON.parse(rawContent);
     return NextResponse.json(blueprint);
 
   } catch (error: any) {
-    console.error('Reasoning Pipeline collapsed:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'AI reasoning pipeline failed.' },
+      { status: 500 }
+    );
   }
 }
