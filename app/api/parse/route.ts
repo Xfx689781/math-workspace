@@ -201,17 +201,47 @@ export async function POST(req: Request) {
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-8',
-      max_tokens: 4096,
+      max_tokens: 20000,
       thinking: { type: 'adaptive' },
-      system: `${SYSTEM_PROMPT}${languageRule}${modeHint}\n\nCRITICAL: Respond with a single raw JSON object. No markdown. No code fences. No explanation text.`,
+      system: `${SYSTEM_PROMPT}${languageRule}${modeHint}\n\nCRITICAL: Respond with a single raw JSON object. No markdown. No code fences. No explanation text. Keep each step body under 400 words to stay within token limits.`,
       messages: [{ role: 'user', content: `Parse and solve: "${query}"` }],
     });
 
     const content = response.content.find(b => b.type === 'text');
     if (!content || content.type !== 'text') throw new Error('No text in AI response.');
 
-    const text = content.text.replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
-    const blueprint = JSON.parse(text);
+    // Strip code fences, then extract the outermost JSON object robustly
+    let raw = content.text
+      .replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+
+    // Find first { and last } to handle any stray preamble/suffix
+    const start = raw.indexOf('{');
+    const end   = raw.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) {
+      throw new Error('AI did not return valid JSON. Try a more specific query.');
+    }
+    raw = raw.slice(start, end + 1);
+
+    let blueprint: any;
+    try {
+      blueprint = JSON.parse(raw);
+    } catch (jsonErr: any) {
+      // Last resort: attempt to recover a partial response (truncation)
+      // Truncate at the last complete top-level key that parses
+      const safeEnd = raw.lastIndexOf(',"steps"');
+      if (safeEnd > 0) {
+        try {
+          // Try closing the object after the last well-formed step array
+          const partial = raw.slice(0, safeEnd) + '}';
+          blueprint = JSON.parse(partial);
+        } catch {
+          throw new Error(`Response was too long and got cut off. Try a shorter or more specific query. (${jsonErr.message})`);
+        }
+      } else {
+        throw new Error(`JSON parse failed — response may have been truncated. Try a more specific query. (${jsonErr.message})`);
+      }
+    }
+
     return NextResponse.json(blueprint);
 
   } catch (error: any) {
