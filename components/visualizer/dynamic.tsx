@@ -43,10 +43,10 @@ const ZH = {
 };
 
 function EmptyHero() {
-  const appMode      = useMathStore(s => s.appMode);
-  const language     = useMathStore(s => s.language);
-  const currentQuery = useMathStore(s => s.currentQuery);
-  const isSolving    = useMathStore(s => s.isSolving);
+  const appMode       = useMathStore(s => s.appMode);
+  const language      = useMathStore(s => s.language);
+  const currentQuery  = useMathStore(s => s.currentQuery);
+  const isSolving     = useMathStore(s => s.isSolving);
   const executeSolver = useMathStore(s => s.executeSolver);
 
   const t = language === 'zh' ? ZH : EN;
@@ -73,7 +73,6 @@ function EmptyHero() {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center px-8 gap-8 relative">
       <div className={`absolute w-[500px] h-[300px] rounded-full blur-[100px] pointer-events-none opacity-[0.04] ${isTheorem ? 'bg-blue-500' : 'bg-violet-500'}`} />
-
       <div className="text-center space-y-2 relative">
         <div className={`text-2xl font-serif mb-3 opacity-30 tracking-wide ${isTheorem ? 'text-blue-400' : 'text-violet-400'}`}>
           {heroSymbol}
@@ -81,7 +80,6 @@ function EmptyHero() {
         <h2 className="text-2xl font-bold text-zinc-200 tracking-tight">{heroTitle}</h2>
         <p className="text-xs text-zinc-600 font-mono tracking-wide">{heroSub}</p>
       </div>
-
       <div className="w-full max-w-2xl space-y-4 relative">
         <div className="flex items-center gap-2">
           <input
@@ -109,7 +107,6 @@ function EmptyHero() {
             }`}
           >→</button>
         </div>
-
         <div className="flex flex-wrap gap-2 justify-center">
           {examples.map(ex => (
             <button
@@ -138,17 +135,153 @@ function renderCanvas(type: string, data: any) {
     case 'analysis-space':   return <AnalysisVisualizer data={data} />;
     case 'discrete-graph':   return <DiscreteVisualizer data={data} />;
     case 'set-diagram':      return <SetDiagramVisualizer data={data} />;
-    case 'riemann-sum':     return <RiemannSumVisualizer data={data} />;
-    case 'epsilon-delta':   return <EpsilonDeltaVisualizer data={data} />;
-    default: return <div className="p-4 text-[10px] font-mono text-zinc-600">Unknown type: {type}</div>;
+    case 'riemann-sum':      return <RiemannSumVisualizer data={data} />;
+    case 'epsilon-delta':    return <EpsilonDeltaVisualizer data={data} />;
+    default: return null;
   }
 }
 
-export default function DynamicVisualizer() {
-  const { visualConfig, steps, errorMessage, language } = useMathStore();
+// ── Text-only layout: theorem proof or problem solution without a canvas ──
+function TextOnlyResult() {
+  const { visualConfig, steps, language, appMode } = useMathStore();
   const t = language === 'zh' ? ZH : EN;
+  const isTheorem = appMode === 'theorem';
 
-  if (errorMessage && !visualConfig) {
+  return (
+    <div className="w-full h-full overflow-y-auto">
+      <div className="max-w-3xl mx-auto px-6 py-6 space-y-6">
+
+        {/* Subdomain label */}
+        {visualConfig?.subdomainLabel && (
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-mono tracking-[0.25em] text-blue-500/80 bg-blue-950/30 border border-blue-900/30 px-2.5 py-1 rounded-md uppercase">
+              {visualConfig.subdomainLabel}
+            </span>
+            <span className={`text-[9px] font-mono tracking-widest uppercase px-2 py-0.5 rounded border ${
+              isTheorem
+                ? 'text-blue-600 border-blue-900/30 bg-blue-950/10'
+                : 'text-violet-600 border-violet-900/30 bg-violet-950/10'
+            }`}>
+              {isTheorem ? 'Theorem' : 'Problem'}
+            </span>
+          </div>
+        )}
+
+        {/* Title */}
+        {visualConfig?.data?.title && (
+          <h1 className="text-xl font-bold text-zinc-100 leading-snug tracking-tight">
+            {visualConfig.data.title}
+          </h1>
+        )}
+
+        {/* Formal Definition */}
+        {visualConfig?.data?.definition && (
+          <div className={`rounded-xl border p-5 ${
+            isTheorem ? 'border-blue-900/40 bg-blue-950/10' : 'border-violet-900/40 bg-violet-950/10'
+          }`}>
+            <div className={`text-[10px] font-mono tracking-[0.2em] uppercase mb-3 ${
+              isTheorem ? 'text-blue-500' : 'text-violet-500'
+            }`}>
+              {t.formalDef}
+            </div>
+            <MathRenderer content={visualConfig.data.definition} />
+          </div>
+        )}
+
+        {/* Proof / Solution steps */}
+        {steps.length > 0 && (
+          <div>
+            <StepByStep steps={steps} mode={appMode} />
+          </div>
+        )}
+
+        {/* Example */}
+        {visualConfig?.data?.example && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-5">
+            <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-zinc-600 mb-3">
+              {t.example}
+            </div>
+            <MathRenderer content={visualConfig.data.example} />
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ── Canvas layout: visualization + definition + steps ──
+function CanvasResult() {
+  const { visualConfig, steps, language, appMode } = useMathStore();
+  const t = language === 'zh' ? ZH : EN;
+  const isTheorem = appMode === 'theorem';
+  if (!visualConfig) return null;
+
+  const canvas = renderCanvas(visualConfig.type, visualConfig.data);
+
+  return (
+    <div className="w-full h-full overflow-y-auto">
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+
+        {/* Label row */}
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-mono tracking-[0.25em] text-blue-500/80 bg-blue-950/30 border border-blue-900/30 px-2.5 py-1 rounded-md uppercase">
+            {visualConfig.subdomainLabel}
+          </span>
+          {visualConfig.data?.title && (
+            <span className="text-sm font-semibold text-zinc-300 truncate flex-1">
+              {visualConfig.data.title}
+            </span>
+          )}
+        </div>
+
+        {/* Canvas */}
+        {canvas && (
+          <div className="h-[280px] rounded-2xl overflow-hidden border border-zinc-900 bg-zinc-950/20">
+            {canvas}
+          </div>
+        )}
+
+        {/* Definition */}
+        {visualConfig.data?.definition && (
+          <div className={`rounded-xl border p-4 ${
+            isTheorem ? 'border-blue-900/40 bg-blue-950/10' : 'border-violet-900/40 bg-violet-950/10'
+          }`}>
+            <div className={`text-[10px] font-mono tracking-[0.2em] uppercase mb-2.5 ${
+              isTheorem ? 'text-blue-500' : 'text-violet-500'
+            }`}>
+              {t.formalDef}
+            </div>
+            <MathRenderer content={visualConfig.data.definition} />
+          </div>
+        )}
+
+        {/* Steps */}
+        {steps.length > 0 && (
+          <div className="rounded-xl border border-zinc-900/60 bg-zinc-950/30 p-4">
+            <StepByStep steps={steps} mode={appMode} />
+          </div>
+        )}
+
+        {/* Example */}
+        {visualConfig.data?.example && (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+            <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-zinc-600 mb-2.5">
+              {t.example}
+            </div>
+            <MathRenderer content={visualConfig.data.example} />
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+export default function DynamicVisualizer() {
+  const { visualConfig, steps, errorMessage } = useMathStore();
+
+  if (errorMessage && !visualConfig && steps.length === 0) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
         <div className="w-full max-w-md bg-rose-950/20 border border-rose-900/40 rounded-2xl p-6">
@@ -162,39 +295,12 @@ export default function DynamicVisualizer() {
     );
   }
 
-  if (!visualConfig) return <EmptyHero />;
+  // No result yet (or currently solving) → hero input
+  if (!visualConfig && steps.length === 0) return <EmptyHero />;
 
-  return (
-    <div className="w-full h-full flex flex-col p-4 gap-4 overflow-y-auto">
-      <div className="shrink-0 flex items-center gap-2">
-        <span className="text-[9px] font-mono tracking-[0.25em] text-blue-500/80 bg-blue-950/30 border border-blue-900/30 px-2.5 py-1 rounded-md uppercase">
-          {visualConfig.subdomainLabel}
-        </span>
-      </div>
+  // Has result but no canvas needed → full-width text layout
+  if (!visualConfig) return <TextOnlyResult />;
 
-      <div className="shrink-0 h-[280px] bg-zinc-950/20 border border-zinc-900 rounded-2xl overflow-hidden">
-        {renderCanvas(visualConfig.type, visualConfig.data)}
-      </div>
-
-      {visualConfig.data?.definition && (
-        <div className="bg-zinc-950/40 border border-zinc-900/50 p-4 rounded-xl shrink-0">
-          <div className="text-[10px] font-mono tracking-widest text-zinc-600 mb-2 uppercase">{t.formalDef}</div>
-          <MathRenderer content={visualConfig.data.definition} />
-        </div>
-      )}
-
-      {steps.length > 0 && (
-        <div className="bg-zinc-950/40 border border-zinc-900/50 p-4 rounded-xl shrink-0">
-          <StepByStep steps={steps} />
-        </div>
-      )}
-
-      {visualConfig.data?.example && (
-        <div className="bg-zinc-950/40 border border-zinc-900/50 p-4 rounded-xl shrink-0">
-          <div className="text-[10px] font-mono tracking-widest text-zinc-600 mb-2 uppercase">{t.example}</div>
-          <MathRenderer content={visualConfig.data.example} />
-        </div>
-      )}
-    </div>
-  );
+  // Has result with canvas → canvas + text layout
+  return <CanvasResult />;
 }

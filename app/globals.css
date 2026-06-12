@@ -25,3 +25,26 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* KaTeX display math — center and give breathing room */
+.math-prose .katex-display {
+  margin: 0.9em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* KaTeX inline math — match surrounding text size */
+.math-prose .katex {
+  font-size: 1em;
+}
+
+/* KaTeX color on dark background */
+.math-prose .katex,
+.math-prose .katex-display {
+  color: #e4e4e7;
+}
+
+/* Prevent KaTeX from inheriting monospace */
+.math-prose .katex * {
+  font-family: KaTeX_Main, 'Times New Roman', serif;
+}

@@ -38,6 +38,20 @@ Return EXACTLY this JSON structure (no markdown, no code fences — raw JSON onl
 
 ━━━ VISUALIZATION SELECTION — DECISION TREE (first matching rule wins) ━━━
 
+RULE 0 — NO VISUALIZATION NEEDED  → visualConfigs: {}  (empty object)
+  Skip all visualization for: linear algebra computations (eigenvalues, determinants,
+  matrix operations, rank, diagonalization), abstract algebra proofs (group theory,
+  ring theory), number theory, combinatorics / counting arguments, purely symbolic
+  proofs (induction, contradiction, algebraic manipulation), sequences of real numbers,
+  series convergence tests (ratio test, comparison test), probability calculations.
+  When you use this rule, return "visualConfigs": {} and omit the canvas entirely.
+  The proof / solution steps will be displayed full-width without a canvas.
+
+  EXAMPLES that need NO visualization:
+  "eigenvalues of [[2,3],[3,4]]", "prove √2 is irrational", "Cayley-Hamilton theorem",
+  "rank-nullity theorem", "geometric series converges", "Sylow theorems",
+  "matrix diagonalization", "determinant of 3×3 matrix".
+
 RULE 1 — RIEMANN INTEGRATION  → type: "riemann-sum"
   Use when query involves ANY of: Riemann sums, Darboux sums, upper/lower sums,
   Riemann integrability criterion, oscillation of f, mesh of partition, norm ‖P‖,
@@ -151,40 +165,44 @@ For "discrete-graph":
     "graphType": "directed" | "undirected", "label": "Graph Name"
   }
 
-━━━ LATEX RULES ━━━
-- ALL math in $$ ... $$ (display) or in text as part of prose
-- In JSON strings: backslash → \\\\ (quadruple in source = double in JSON string)
-- Example: "$$ \\\\forall \\\\varepsilon > 0, \\\\exists N \\\\in \\\\mathbb{N} $$"
-- Never single $ signs. Never bare math symbols.
+━━━ LATEX / JSON FORMATTING RULES ━━━
+- ALL math MUST be inside $$ ... $$ delimiters (display blocks). Use them generously.
+- In JSON strings every LaTeX backslash must be doubled: \\ in JSON = \ in LaTeX.
+  Examples:  \\frac{a}{b}   \\begin{pmatrix}   \\forall   \\varepsilon
+- Matrix row separators: LaTeX \\\\ = four backslashes in JSON string.
+  Full example: "$$ \\begin{pmatrix} 2 & 3 \\\\ 3 & 4 \\end{pmatrix} $$"
+- NEVER write bare LaTeX outside delimiters. NEVER omit $$ for equations.
+- For inline values you may use $$ a = b $$ inline within a sentence.
 
-━━━ STEPS GUIDELINES ━━━
-- 4–7 steps for any non-trivial theorem or problem
-- Explain WHY each step works, not just state it
-- "insight" steps: geometric or intuitive explanation
-- "calculation" steps: explicit computation with numbers
+━━━ STEPS RULES ━━━
+- Each step body: complete sentences, full mathematical reasoning, generous use of $$ ... $$.
+- Keep each step body under 350 words to stay within token budget.
+- "insight" step: geometric/intuitive explanation — WHY is this true, not just that it is.
+- "calculation" step: explicit arithmetic or algebraic manipulation shown step by step.
+- Include an "example" field in visualConfigs ONLY when a concrete example genuinely helps.
+  Omit it otherwise (do not pad with trivial examples).
 
-━━━ PROOF MANDATE — CRITICAL ━━━
-For EVERY theorem query you MUST write a COMPLETE RIGOROUS MATHEMATICAL PROOF in the steps array.
-A description of what the theorem says is NOT a proof. PROOFS ARE MANDATORY.
+━━━ PROOF MANDATE — THEOREM MODE ━━━
+For theorem queries: WRITE A COMPLETE RIGOROUS PROOF. A description is NOT a proof.
 
-Required proof structure:
-  1. type "setup"       → State the theorem EXACTLY. Define all symbols. State what we will prove.
-  2. type "definition"  → Define all mathematical objects used (topology, limits, compactness, etc.)
-  3. type "key-step"    → First major proof argument with FULL justification citing definitions
-  4. type "key-step"    → Additional key steps (use as many as needed — at least 2 key-steps)
-  5. type "conclusion"  → Synthesize all key-steps. Write "Therefore [complete statement] ∎"
-  6. type "insight"     → Why is this result true geometrically or intuitively?
+Structure (in order):
+  1. "setup"      — Precise statement. Define all symbols. State hypothesis and conclusion.
+  2. "definition" — Define the key mathematical objects required by the proof.
+  3. "key-step"   — Each major proof step with FULL justification (≥ 2 key-steps required).
+  4. "conclusion" — Synthesize. End with "Therefore ... ∎" or "Hence ... QED".
+  5. "insight"    — Geometric or intuitive explanation of why the result holds.
 
-PROOF RULES (HARD REQUIREMENTS):
-- Never omit the proof. Never write "the proof follows from..." without completing it.
-- Each key-step must state WHICH prior definition or step it uses as justification.
-- For compactness proofs: show the covering argument step by step — exhibit the finite subcover.
-- For convergence proofs: exhibit the N(ε) explicitly with the calculation showing it works.
-- For algebraic proofs: show every algebraic manipulation inline with $$ ... $$.
-- For existence proofs: construct the object or cite the exact existence theorem.
-- Write full sentences in each step body, not bullet fragments.
-- Display math blocks with $$ ... $$ for every equation.
-- Minimum 5 steps total for any real theorem (setup + ≥2 key-steps + conclusion + insight).`;
+Hard rules: never say "the proof follows from X" without completing it. Each key-step
+must cite which definition or prior step it uses. For ε-N proofs: exhibit N(ε) explicitly.
+Minimum 5 steps for any real theorem.
+
+━━━ PROBLEM MODE RULES ━━━
+For problem queries: focus on worked computation.
+  1. "setup"       — Restate problem precisely, identify what to compute.
+  2. "calculation" — Each computational step shown explicitly with numbers.
+  3. "key-step"    — Any non-trivial mathematical insight required.
+  4. "conclusion"  — State the final answer clearly in a $$ ... $$ block.
+Example field: include a verification check or related example when useful.`;
 
 export async function POST(req: Request) {
   try {
@@ -196,8 +214,8 @@ export async function POST(req: Request) {
       : '\n\nLANGUAGE: English mode. ALL text must be English only. subdomainLabel must be English only: "TOPOLOGY", "REAL ANALYSIS", "ALGEBRA", etc. ZERO Chinese characters anywhere in the response.';
 
     const modeHint = mode === 'problem'
-      ? '\n\nMODE: Problem Solver. Prioritize calculation steps, explicit worked solutions, "calculation" and "conclusion" step types. Visualization should illustrate the problem setup or result.'
-      : '\n\nMODE: Theorem Prover. Prioritize formal definitions, proof structure, "definition", "key-step", and "insight" step types. Visualization should directly illustrate the mathematical concept.';
+      ? '\n\nACTIVE MODE: Problem Solver. Step types to use: "setup", "calculation", "key-step", "conclusion". Show every computation explicitly. Only include visualization if it directly illustrates the problem (e.g. plot the function being integrated, not an unrelated diagram). For purely algebraic/linear algebra problems return visualConfigs: {}.'
+      : '\n\nACTIVE MODE: Theorem Prover. Step types to use: "setup", "definition", "key-step", "conclusion", "insight". Write a complete formal proof. Only include visualization when it directly illustrates the geometric/analytic content of the theorem. For purely algebraic theorems (group theory, linear algebra, number theory) return visualConfigs: {}.';
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-8',
