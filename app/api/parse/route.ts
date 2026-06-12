@@ -228,19 +228,43 @@ For "discrete-graph":
 - Include an "example" field in visualConfigs ONLY when a concrete example genuinely helps.
   Omit it otherwise (do not pad with trivial examples).
 
-━━━ PROOF MANDATE — THEOREM MODE ━━━
-For theorem queries: WRITE A COMPLETE RIGOROUS PROOF. A description is NOT a proof.
+━━━ THEOREM MODE — CLASSIFY FIRST ━━━
 
-Structure (in order):
-  1. "setup"      — Precise statement. Define all symbols. State hypothesis and conclusion.
-  2. "definition" — Define the key mathematical objects required by the proof.
-  3. "key-step"   — Each major proof step with FULL justification (≥ 2 key-steps required).
-  4. "conclusion" — Synthesize. End with "Therefore ... ∎" or "Hence ... QED".
-  5. "insight"    — Geometric or intuitive explanation of why the result holds.
+Before writing anything, decide which type the query is:
 
-Hard rules: never say "the proof follows from X" without completing it. Each key-step
-must cite which definition or prior step it uses. For ε-N proofs: exhibit N(ε) explicitly.
-Minimum 5 steps for any real theorem.
+▸ TYPE T — SPECIFIC THEOREM / PROOF REQUEST
+  The query names a known result that has a proof, OR explicitly uses words like
+  "prove", "show", "verify", "theorem", "lemma", "corollary".
+  EXAMPLES: "Heine-Borel theorem", "prove √2 is irrational", "Bolzano-Weierstrass",
+  "intermediate value theorem", "Cauchy-Schwarz inequality".
+
+  Structure (in order):
+  1. "setup"      — Precise statement: hypotheses, conclusion, all symbols defined.
+  2. "definition" — Define key mathematical objects the proof relies on.
+  3. "key-step"   — Each major proof step, FULLY justified (≥ 2 required).
+  4. "conclusion" — Synthesize all steps. End with "Therefore … ∎" or "Hence … QED".
+  5. "insight"    — Geometric or intuitive WHY: what makes this true at a deep level.
+  Hard rules: never say "the proof follows from X" without completing it. For ε-N
+  proofs, exhibit N(ε) explicitly. Cite which prior step/definition each key-step uses.
+  Minimum 5 steps.
+
+▸ TYPE D — CONCEPT / DEFINITION
+  The query names a mathematical concept, object, or structure WITHOUT asking to prove
+  a specific result. The user wants to understand WHAT it is, not prove a theorem about it.
+  EXAMPLES: "torsion", "compactness", "homeomorphism", "normal subgroup", "Cauchy sequence",
+  "connected space", "principal ideal", "exact sequence", "manifold", "metric space".
+
+  Structure (in order):
+  1. "definition" — The rigorous formal definition with ALL quantifiers and conditions.
+                    Full precision, as it would appear in a graduate textbook.
+  2. "key-step"   — Use 2–4 of these for: key properties / equivalent characterizations /
+                    important special cases / how to check the definition in practice.
+  3. "insight"    — Why does this concept exist? What problem does it solve? Geometric or
+                    intuitive picture of what the definition is capturing.
+  IMPORTANT: Do NOT write a proof of a related theorem. The visualConfigs "title" should
+  name the concept itself. The "example" field MUST contain: (1) a concrete example that
+  satisfies the definition, (2) a non-example / counterexample that fails it, clearly labeled.
+  Minimum 3 steps.
 
 ━━━ PROBLEM MODE RULES ━━━
 For problem queries: focus on worked computation.
@@ -260,8 +284,8 @@ export async function POST(req: Request) {
       : '\n\nLANGUAGE: English mode. ALL text must be English only. subdomainLabel must be English only: "TOPOLOGY", "REAL ANALYSIS", "ALGEBRA", etc. ZERO Chinese characters anywhere in the response.';
 
     const modeHint = mode === 'problem'
-      ? '\n\nACTIVE MODE: Problem Solver. Step types to use: "setup", "calculation", "key-step", "conclusion". Show every computation explicitly. Only include visualization if it directly illustrates the problem (e.g. plot the function being integrated, not an unrelated diagram). For purely algebraic/linear algebra problems return visualConfigs: {}.'
-      : '\n\nACTIVE MODE: Theorem Prover. Step types to use: "setup", "definition", "key-step", "conclusion", "insight". Write a complete formal proof. Only include visualization when it directly illustrates the geometric/analytic content of the theorem. For purely algebraic theorems (group theory, linear algebra, number theory) return visualConfigs: {}.';
+      ? '\n\nACTIVE MODE: Problem Solver. Step types to use: "setup", "calculation", "key-step", "conclusion". Show every computation explicitly. Only include visualization if it directly illustrates the problem. For purely algebraic/linear algebra problems return visualConfigs: {}.'
+      : '\n\nACTIVE MODE: Theorem / Definition Explorer. Classify query as TYPE T (theorem/proof) or TYPE D (concept/definition) per the THEOREM MODE section above, then follow the matching structure exactly. Do not write a theorem proof when the user is asking about a concept.';
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-8',

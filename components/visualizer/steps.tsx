@@ -89,16 +89,26 @@ export default function StepByStep({ steps, mode, label }: StepByStepProps) {
   if (!steps || steps.length === 0) return null;
 
   const isTheoremMode = mode === 'theorem';
-  const sectionLabel = label ?? (isTheoremMode ? 'Proof' : 'Solution');
+  const firstStepType = steps[0]?.type;
+  const isDefinitionMode = isTheoremMode && firstStepType === 'definition';
+  const sectionLabel = label ?? (
+    isTheoremMode
+      ? (isDefinitionMode ? 'Definition & Properties' : 'Proof')
+      : 'Solution'
+  );
 
   return (
     <div>
       <div className="flex items-center gap-2.5 mb-4">
-        <span className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 uppercase">
+        <span className={`text-[10px] font-mono tracking-[0.2em] uppercase ${
+          isDefinitionMode ? 'text-sky-500/70' : 'text-zinc-500'
+        }`}>
           {sectionLabel}
         </span>
         <div className="flex-1 h-px bg-zinc-800/60" />
-        <span className="text-[9px] font-mono text-zinc-700">{steps.length} steps</span>
+        <span className="text-[9px] font-mono text-zinc-700">
+          {steps.length} {isDefinitionMode ? 'sections' : 'steps'}
+        </span>
       </div>
       {isTheoremMode
         ? <TheoremSteps steps={steps} />
