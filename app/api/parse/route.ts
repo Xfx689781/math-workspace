@@ -1,25 +1,11 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-export async function POST(req: Request) {
-  try {
-    const { query } = await req.json();
-    if (!query) {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
-    }
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
-      temperature: 0.1,
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert mathematics professor and visualization engine. Given a mathematical query (theorem, concept, or problem to solve), produce a rich pedagogical breakdown.
+const SYSTEM_PROMPT = `You are an expert mathematics professor and visualization engine. Given a mathematical query (theorem, concept, or problem to solve), produce a rich pedagogical breakdown.
 
 Return EXACTLY this JSON structure:
 {
@@ -60,7 +46,7 @@ For "basics-plot":
   Examples: "x^3 - x", "sin(x)/x", "exp(-x^2)", "1/(1+x^2)"
 
 For "analysis-space" (interactiveType "epsilon-tube"):
-  "params": { "fnExpression": "x^n", "limitFn": "0", "domain": [0, 1], "note": "pointwise not uniform" }
+  "params": { "fnExpression": "x**n", "limitFn": "0", "domain": [0, 1], "note": "pointwise not uniform" }
   fnExpression is a family parametrized by n (use literal "n" in expression)
 
 For "topology-3d":
@@ -72,7 +58,7 @@ For "algebra-sequence":
     "morphisms": [
       {"from": 0, "to": 1, "label": "0"},
       {"from": 1, "to": 2, "label": "i"},
-      {"from": 2, "to": 3, "label": "\\pi"},
+      {"from": 2, "to": 3, "label": "\\\\pi"},
       {"from": 3, "to": 4, "label": "0"}
     ],
     "isExact": true,
@@ -89,8 +75,8 @@ For "discrete-graph":
 
 LATEX RULES (critical):
 - ALL math MUST be in $$ ... $$ (double dollar signs)
-- In JSON strings, backslash is \\ (double). So \\forall, \\varepsilon, \\mathbb{R}, \\frac{a}{b}
-- Example correct: "$$ \\forall \\varepsilon > 0, \\exists N \\in \\mathbb{N} $$"
+- In JSON strings, backslash is \\\\ (double). So \\\\forall, \\\\varepsilon, \\\\mathbb{R}, \\\\frac{a}{b}
+- Example correct: "$$ \\\\forall \\\\varepsilon > 0, \\\\exists N \\\\in \\\\mathbb{N} $$"
 - Never use single $ signs
 - Never leave math symbols unformatted
 
@@ -99,19 +85,35 @@ STEPS GUIDELINES:
 - Each step body should explain WHY the step works, not just state it
 - "insight" type steps should give geometric or intuitive explanations
 - "calculation" type steps should show explicit computation
-- For a problem/exercise query: treat it as a worked example with full solution steps`
-        },
-        {
-          role: 'user',
-          content: `Parse and solve: "${query}"`
-        }
-      ]
+- For a problem/exercise query: treat it as a worked example with full solution steps`;
+
+export async function POST(req: Request) {
+  try {
+    const { query } = await req.json();
+    if (!query) {
+      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    }
+
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-4-8',
+      max_tokens: 4096,
+      thinking: { type: 'adaptive' },
+      system: `${SYSTEM_PROMPT}\n\nCRITICAL: Your entire response must be a single valid JSON object. No markdown, no explanation, no code blocks. Just raw JSON.`,
+      messages: [{ role: 'user', content: `Parse and solve: "${query}"` }],
     });
 
-    const rawContent = response.choices[0]?.message?.content;
-    if (!rawContent) throw new Error('Empty response from AI.');
+    const content = response.content.find((b) => b.type === 'text');
+    if (!content || content.type !== 'text') {
+      throw new Error('No text in AI response.');
+    }
 
-    const blueprint = JSON.parse(rawContent);
+    const text = content.text
+      .replace(/^```json\n?/, '')
+      .replace(/^```\n?/, '')
+      .replace(/\n?```$/, '')
+      .trim();
+
+    const blueprint = JSON.parse(text);
     return NextResponse.json(blueprint);
 
   } catch (error: any) {

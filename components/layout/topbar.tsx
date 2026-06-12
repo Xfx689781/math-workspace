@@ -5,7 +5,6 @@ import { useMathStore } from '@/store/useMathStore';
 export default function Topbar() {
   const currentQuery = useMathStore((state) => state.currentQuery);
   const isSolving = useMathStore((state) => state.isSolving);
-  const visualConfig = useMathStore((state) => state.visualConfig);
   const errorMessage = useMathStore((state) => state.errorMessage);
   const executeSolver = useMathStore((state) => state.executeSolver);
   
@@ -38,20 +37,12 @@ export default function Topbar() {
         </div>
       )}
     <div className="h-14 px-6 flex items-center justify-between">
-      {/* 🧭 左侧：动态面包屑拓扑航线 */}
-      <div className="flex items-center space-x-2 select-none">
+      {/* 左侧：品牌名 */}
+      <div className="flex items-center gap-3 select-none shrink-0">
         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-        <div className="flex items-center space-x-1.5 font-mono text-[10px] tracking-wider text-zinc-500">
-          <span className="uppercase">Workspace</span>
-          <span>/</span>
-          {visualConfig ? (
-            <span className="text-zinc-300 font-bold transition-all">
-              {visualConfig.subdomainLabel.split(' ')[0]}
-            </span>
-          ) : (
-            <span className="text-zinc-600 italic">Idle_Locus</span>
-          )}
-        </div>
+        <span className="text-sm font-black tracking-[0.12em] text-zinc-100 uppercase italic">
+          Math <span className="text-blue-500 font-sans not-italic">Workspace</span>
+        </span>
       </div>
 
       {/* 🔍 中间：核心学术指令输入内核 */}
