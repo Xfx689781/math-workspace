@@ -139,17 +139,37 @@ export const useMathStore = create<MathStore>((set, get) => ({
         ...edge, animated: true, style: { stroke: '#3f3f46', strokeWidth: 1.5 }
       }));
 
+      // Build visualConfig directly from the first entry in visualConfigs.
+      // Do NOT rely on node IDs matching visualConfigs keys — Claude often uses
+      // different IDs in each, causing a silent mismatch that leaves visualConfig null.
+      const configs: Record<string, any> = blueprint.visualConfigs || {};
+      const firstKey = Object.keys(configs)[0];
+      const cfg = firstKey ? configs[firstKey] : null;
+      const subLabel = blueprint.subdomainLabel || 'MATHEMATICS';
+
+      const visualConfig: VisualConfig | null = cfg ? {
+        type: cfg.type,
+        subdomainLabel: subLabel,
+        data: {
+          title: cfg.title || '',
+          definition: cfg.definition || '',
+          example: cfg.example,
+          interactiveType: cfg.interactiveType || '',
+          params: cfg.params || {},
+        },
+      } : null;
+
       set({
         activeDomain: blueprint.activeDomain || 'basics',
-        subdomainLabel: blueprint.subdomainLabel || 'MATHEMATICS',
+        subdomainLabel: subLabel,
         nodes: layoutNodes,
         edges: animatedEdges,
-        cachedConfigs: blueprint.visualConfigs || {},
+        activeNodeId: firstKey || (layoutNodes[0]?.id ?? null),
+        cachedConfigs: configs,
         steps: blueprint.steps || [],
+        visualConfig,
         isSolving: false,
       });
-
-      if (layoutNodes.length > 0) get().setActiveNode(layoutNodes[0].id);
 
     } catch (error: any) {
       console.error('Solver error:', error);
