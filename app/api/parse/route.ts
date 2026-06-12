@@ -45,18 +45,22 @@ Return EXACTLY this JSON structure (no markdown, no code fences — raw JSON onl
 ━━━ VISUALIZATION SELECTION — DECISION TREE (first matching rule wins) ━━━
 
 RULE 0 — NO VISUALIZATION NEEDED  → visualConfigs: {}  (empty object)
-  Skip all visualization for: linear algebra computations (eigenvalues, determinants,
-  matrix operations, rank, diagonalization), abstract algebra proofs (group theory,
-  ring theory), number theory, combinatorics / counting arguments, purely symbolic
-  proofs (induction, contradiction, algebraic manipulation), sequences of real numbers,
-  series convergence tests (ratio test, comparison test), probability calculations.
-  When you use this rule, return "visualConfigs": {} and omit the canvas entirely.
-  The proof / solution steps will be displayed full-width without a canvas.
+  Skip visualization ONLY for queries that are purely symbolic with no geometric content:
+  • Computational linear algebra on SPECIFIC matrices (eigenvalues of [[2,3],[3,4]],
+    determinant, row reduction, rank computation, matrix diagonalization)
+  • Abstract algebra PROOFS with no geometry (Sylow theorem proof, ring axiom verification,
+    abstract homomorphism existence proof, Cayley-Hamilton proof, Lagrange theorem proof)
+  • Number theory computations (GCD, primality, modular arithmetic calculations)
+  • Pure combinatorics / counting arguments
+  • Series / sequence CONVERGENCE TESTS (ratio test, root test, comparison test)
+  • Probability calculations
+
+  DO NOT apply Rule 0 for concepts with geometric or orbital structure — those have rules below.
 
   EXAMPLES that need NO visualization:
   "eigenvalues of [[2,3],[3,4]]", "prove √2 is irrational", "Cayley-Hamilton theorem",
   "rank-nullity theorem", "geometric series converges", "Sylow theorems",
-  "matrix diagonalization", "determinant of 3×3 matrix".
+  "matrix diagonalization", "determinant of 3×3 matrix", "Lagrange theorem proof".
 
 RULE 1 — RIEMANN INTEGRATION  → type: "riemann-sum"
   Use when query involves ANY of: Riemann sums, Darboux sums, upper/lower sums,
@@ -103,9 +107,19 @@ RULE 5 — SEQUENCES OF FUNCTIONS  → type: "analysis-space"
   EXAMPLES: "f_n(x) = x^n on [0,1]", "uniform convergence", "pointwise convergence".
   NOT for sequences of numbers. NOT for limits lim_{x→a}.
 
-RULE 6 — ALGEBRAIC STRUCTURES  → type: "algebra-sequence"
-  Use for: groups, rings, fields, exact sequences, commutative diagrams, homomorphisms,
-  functors, natural transformations, short exact sequences.
+RULE 6 — ALGEBRAIC STRUCTURES (non-cyclic)  → type: "algebra-sequence"
+  Use for: short exact sequences, commutative diagrams, functors, natural transformations,
+  abstract homomorphism sequences, module exact sequences.
+  NOT for cyclic groups or torsion (use RULE 6b below).
+
+RULE 6b — CYCLIC GROUPS / TORSION / FINITE GROUP GEOMETRY  → type: "group-orbit"
+  Use when query involves: torsion elements, element order in a group, cyclic groups ℤ/nℤ,
+  generators of a cyclic group, roots of unity, finite abelian group structure,
+  orbit of an element under repeated group operation, subgroups of ℤ/nℤ, dihedral groups Dₙ,
+  rotation groups, symmetry groups with geometric content.
+  EXAMPLES: "torsion", "torsion element", "cyclic group Z/nZ", "element order in a group",
+  "roots of unity", "nth roots of unity", "generators of Z/6Z", "subgroups of Z/12Z",
+  "dihedral group D_4", "rotation group Z/nZ".
 
 RULE 7 — GRAPH THEORY  → type: "discrete-graph"
   Use for: graphs, trees, networks, planar graphs, graph coloring, Euler path.
@@ -193,6 +207,21 @@ For "analysis-space":
 
 For "topology-3d":
   "params": { "shape": "torus" | "sphere" | "mobius", "color": "#2563eb", "label": "T²" }
+
+For "group-orbit":
+  "params": {
+    "n": 6,
+    "highlightElement": 1,
+    "label": "ℤ/6ℤ",
+    "note": "Every element k ∈ ℤ/6ℤ satisfies 6k = 0, so every element is a torsion element."
+  }
+  n: the group order (integer 2–12). Choose n to match the primary example (e.g. n=6 for ℤ/6ℤ,
+     n=8 for 8th roots of unity, n=4 for dihedral D₄).
+  highlightElement: integer 1..n-1, the element whose orbit to show initially.
+     Choose a generator (ord = n) for maximum visual interest, or the element most
+     relevant to the concept being illustrated.
+  label: display name of the group (e.g. "ℤ/6ℤ", "U(12)", "D₄", "μ₈").
+  note: one sentence explaining the connection to the concept being discussed.
 
 For "algebra-sequence":
   "params": {
@@ -284,8 +313,8 @@ export async function POST(req: Request) {
       : '\n\nLANGUAGE: English mode. ALL text must be English only. subdomainLabel must be English only: "TOPOLOGY", "REAL ANALYSIS", "ALGEBRA", etc. ZERO Chinese characters anywhere in the response.';
 
     const modeHint = mode === 'problem'
-      ? '\n\nACTIVE MODE: Problem Solver. Step types to use: "setup", "calculation", "key-step", "conclusion". Show every computation explicitly. Only include visualization if it directly illustrates the problem. For purely algebraic/linear algebra problems return visualConfigs: {}.'
-      : '\n\nACTIVE MODE: Theorem / Definition Explorer. Classify query as TYPE T (theorem/proof) or TYPE D (concept/definition) per the THEOREM MODE section above, then follow the matching structure exactly. Do not write a theorem proof when the user is asking about a concept.';
+      ? '\n\nACTIVE MODE: Problem Solver. Step types: "setup", "calculation", "key-step", "conclusion". Show every computation explicitly. Only visualize if it directly illustrates the problem. For purely computational linear algebra return visualConfigs: {}.'
+      : '\n\nACTIVE MODE: Theorem / Definition Explorer. Classify as TYPE T (theorem/proof) or TYPE D (concept/definition) per THEOREM MODE above. Follow matching structure. Use the VISUALIZATION SELECTION rules to pick the right canvas type — do NOT default to visualConfigs: {} for group-theory concepts that have orbital geometry (torsion, cyclic groups, roots of unity → group-orbit).';
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-8',

@@ -12,6 +12,7 @@ import RiemannSumVisualizer from './riemannsum';
 import EpsilonDeltaVisualizer from './epsilondelta';
 import LevelSetVisualizer from './levelset';
 import GramSchmidtVisualizer from './gramschmidt';
+import GroupOrbitVisualizer from './grouporbit';
 
 const EN = {
   heroTheorem: 'What theorem shall we explore?',
@@ -141,6 +142,7 @@ function renderCanvas(type: string, data: any) {
     case 'epsilon-delta':    return <EpsilonDeltaVisualizer data={data} />;
     case 'level-set':        return <LevelSetVisualizer data={data} />;
     case 'gram-schmidt':     return <GramSchmidtVisualizer data={data} />;
+    case 'group-orbit':      return <GroupOrbitVisualizer data={data} />;
     default: return null;
   }
 }
