@@ -1,7 +1,6 @@
 "use client";
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 
-// Evaluate math expressions with x as variable
 function evalFn(expr: string, x: number): number | null {
   if (!expr) return null;
   try {
@@ -72,7 +71,6 @@ export default function BasicsVisualizer({ data }: { data: any }) {
     sy: M.t + (1 - (y - yMin) / (yMax - yMin)) * PH,
   });
 
-  // Build polyline segments (break at discontinuities)
   const segments = useMemo(() => {
     const segs: string[] = [];
     let current: string[] = [];
@@ -96,11 +94,35 @@ export default function BasicsVisualizer({ data }: { data: any }) {
   }, [rawPoints, yMin, yMax]);
 
   const [sliderIdx, setSliderIdx] = useState(Math.floor(SAMPLES / 2));
+  const [dragging, setDragging] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const clientToIdx = useCallback((clientX: number) => {
+    const el = svgRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const relX = ((clientX - rect.left) / rect.width) * SVG_W;
+    const idx = Math.round(((relX - M.l) / PW) * SAMPLES);
+    setSliderIdx(Math.max(0, Math.min(SAMPLES, idx)));
+  }, []);
+
+  const onSvgDown = useCallback((e: React.PointerEvent) => {
+    setDragging(true);
+    clientToIdx(e.clientX);
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  }, [clientToIdx]);
+
+  const onSvgMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging) return;
+    clientToIdx(e.clientX);
+  }, [dragging, clientToIdx]);
+
+  const stopDrag = useCallback(() => setDragging(false), []);
+
   const pt = rawPoints[sliderIdx];
   const x0 = pt.x;
   const y0 = pt.y;
 
-  // Central-difference derivative
   const yNext = rawPoints[Math.min(sliderIdx + 2, SAMPLES)].y;
   const yPrev = rawPoints[Math.max(sliderIdx - 2, 0)].y;
   const dx = (xMax - xMin) / SAMPLES;
@@ -110,6 +132,16 @@ export default function BasicsVisualizer({ data }: { data: any }) {
   const axisY = Math.max(M.t, Math.min(SVG_H - M.b, toSvg(0, 0).sy));
   const axisX = Math.max(M.l, Math.min(SVG_W - M.r, toSvg(0, 0).sx));
 
+  // Tangent line endpoints
+  const tangentLine = tangent && slope !== null ? (() => {
+    const halfSpan = (xMax - xMin) * 0.18;
+    const x1 = x0 - halfSpan;
+    const x2 = x0 + halfSpan;
+    const y1 = y0! + slope * (-halfSpan);
+    const y2 = y0! + slope * halfSpan;
+    return { p1: toSvg(x1, y1), p2: toSvg(x2, y2) };
+  })() : null;
+
   return (
     <div className="w-full h-full flex flex-col p-4 bg-zinc-950 font-mono text-xs text-zinc-400">
       <div className="text-[9px] text-zinc-600 tracking-widest uppercase mb-2 truncate">
@@ -117,7 +149,16 @@ export default function BasicsVisualizer({ data }: { data: any }) {
       </div>
 
       <div className="flex-1 border border-zinc-900 rounded-xl bg-[#030303] overflow-hidden min-h-[120px]">
-        <svg className="w-full h-full" viewBox={`0 0 ${SVG_W} ${SVG_H}`}>
+        <svg
+          ref={svgRef}
+          className="w-full h-full select-none"
+          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+          onPointerDown={onSvgDown}
+          onPointerMove={onSvgMove}
+          onPointerUp={stopDrag}
+          onPointerLeave={stopDrag}
+          style={{ cursor: dragging ? 'crosshair' : 'crosshair' }}
+        >
           {/* Axes */}
           <line x1={M.l} y1={axisY} x2={SVG_W - M.r} y2={axisY} stroke="#27272a" strokeWidth="1" />
           <line x1={axisX} y1={M.t} x2={axisX} y2={SVG_H - M.b} stroke="#27272a" strokeWidth="1" />
@@ -129,23 +170,37 @@ export default function BasicsVisualizer({ data }: { data: any }) {
             <polyline key={i} fill="none" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" points={pts} />
           ))}
 
+          {/* Tangent line */}
+          {tangentLine && (
+            <line
+              x1={tangentLine.p1.sx} y1={tangentLine.p1.sy}
+              x2={tangentLine.p2.sx} y2={tangentLine.p2.sy}
+              stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="3,2" opacity="0.7"
+            />
+          )}
+
           {/* Tangent point + derivative label */}
           {tangent && (
             <>
               <circle cx={tangent.sx} cy={tangent.sy} r="3.5" fill="#f59e0b" />
               {slope !== null && (
-                <text x={tangent.sx + 5} y={tangent.sy - 4} fill="#f59e0b" fontSize="6.5" fontFamily="monospace">
+                <text x={tangent.sx + 6} y={tangent.sy - 4} fill="#f59e0b" fontSize="6.5" fontFamily="monospace">
                   f&apos;≈{slope.toFixed(2)}
                 </text>
               )}
             </>
           )}
+
+          {/* Click hint */}
+          <text x={SVG_W / 2} y={SVG_H - 3} fill="#3f3f46" fontSize="5.5" fontFamily="monospace" textAnchor="middle">
+            click or drag to move tangent
+          </text>
         </svg>
       </div>
 
       <div className="mt-3 space-y-1.5">
         <div className="flex justify-between text-[10px]">
-          <span className="text-zinc-500">Tangent x₀</span>
+          <span className="text-zinc-500">Tangent x₀ <span className="text-zinc-700">(click curve above)</span></span>
           <span className="text-zinc-300">
             x={x0.toFixed(2)}{y0 !== null ? `  f(x)=${y0.toFixed(3)}` : ''}
           </span>

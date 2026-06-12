@@ -120,7 +120,30 @@ For "discrete-graph":
 - 4–7 steps for any non-trivial theorem or problem
 - Explain WHY each step works, not just state it
 - "insight" steps: geometric or intuitive explanation
-- "calculation" steps: explicit computation with numbers`;
+- "calculation" steps: explicit computation with numbers
+
+━━━ PROOF MANDATE — CRITICAL ━━━
+For EVERY theorem query you MUST write a COMPLETE RIGOROUS MATHEMATICAL PROOF in the steps array.
+A description of what the theorem says is NOT a proof. PROOFS ARE MANDATORY.
+
+Required proof structure:
+  1. type "setup"       → State the theorem EXACTLY. Define all symbols. State what we will prove.
+  2. type "definition"  → Define all mathematical objects used (topology, limits, compactness, etc.)
+  3. type "key-step"    → First major proof argument with FULL justification citing definitions
+  4. type "key-step"    → Additional key steps (use as many as needed — at least 2 key-steps)
+  5. type "conclusion"  → Synthesize all key-steps. Write "Therefore [complete statement] ∎"
+  6. type "insight"     → Why is this result true geometrically or intuitively?
+
+PROOF RULES (HARD REQUIREMENTS):
+- Never omit the proof. Never write "the proof follows from..." without completing it.
+- Each key-step must state WHICH prior definition or step it uses as justification.
+- For compactness proofs: show the covering argument step by step — exhibit the finite subcover.
+- For convergence proofs: exhibit the N(ε) explicitly with the calculation showing it works.
+- For algebraic proofs: show every algebraic manipulation inline with $$ ... $$.
+- For existence proofs: construct the object or cite the exact existence theorem.
+- Write full sentences in each step body, not bullet fragments.
+- Display math blocks with $$ ... $$ for every equation.
+- Minimum 5 steps total for any real theorem (setup + ≥2 key-steps + conclusion + insight).`;
 
 export async function POST(req: Request) {
   try {
