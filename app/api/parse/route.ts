@@ -112,9 +112,27 @@ RULE 3 — TOPOLOGY OF SETS IN ℝⁿ  → type: "set-diagram"
   EXAMPLES: "Heine-Borel theorem", "compactness", "Bolzano-Weierstrass".
 
 RULE 4 — SURFACE / MANIFOLD TOPOLOGY  → type: "topology-3d"
-  Use ONLY when query involves surfaces or manifolds: Möbius strip, torus, Klein bottle,
-  sphere, manifold genus, surface classification, Euler characteristic.
-  DO NOT use for Heine-Borel, compactness, or sets in ℝⁿ.
+  Use ONLY when query involves topological classification of surfaces or manifolds:
+  Möbius strip, torus, Klein bottle, sphere, manifold genus, surface classification,
+  Euler characteristic, orientability, fundamental polygon.
+  DO NOT use for function plots, differential geometry of f(x,y), or analysis surfaces.
+
+RULE 4b — 3D FUNCTION SURFACES / DIFFERENTIAL GEOMETRY  → type: "surface-3d"
+  Use when query involves a graph of a function of TWO variables z = f(x,y), or any
+  concept that needs a 3D coordinate system with a surface:
+  • Specific surfaces: paraboloid, elliptic paraboloid, hyperbolic paraboloid (saddle),
+    cone, cylinder, hyperboloid of 1 or 2 sheets, monkey saddle, Enneper surface.
+  • Calculus concepts ON surfaces: tangent plane to a surface, gradient of f(x,y),
+    directional derivative, gradient field, Hessian, critical points, second derivative test,
+    local max/min on a surface, saddle point.
+  • Multivariable calculus: partial derivatives geometrically, total differential,
+    chain rule for f(x(t),y(t)), Lagrange multipliers (level surface + constraint),
+    double integral as volume under a surface.
+  • Differential geometry: first fundamental form, curvature of a surface,
+    Gaussian curvature, mean curvature, geodesics.
+  NEVER use for: topology of surfaces (→ topology-3d), implicit curves F(x,y)=c (→ level-set).
+  EXAMPLES: "paraboloid z=x²+y²", "saddle surface", "tangent plane", "gradient ∇f",
+  "critical points of f(x,y)", "method of Lagrange multipliers", "Gaussian curvature".
 
 RULE 5 — SEQUENCES OF FUNCTIONS  → type: "analysis-space"
   Use when query involves a PARAMETRIC FAMILY f_n(x) converging to a limit function:
@@ -221,6 +239,35 @@ For "gram-schmidt" — ALWAYS include "mode". Choose based on concept, not conve
   }
   w: direction vector of W. v: a sample vector showing the decomposition.
   Keep both magnitudes in [0.4, 2.0]. Choose v not aligned with w or w⊥.
+
+For "surface-3d":
+  "params": {
+    "fnExpression": "x**2 + y**2",
+    "domain": [[-2, 2], [-2, 2]],
+    "label": "z = x² + y² (Paraboloid)",
+    "showTangentPlane": false,
+    "showGradient": false,
+    "point": [0.8, 0.6],
+    "note": "Vertex at origin, opens upward. Every cross-section z=c is a circle."
+  }
+  fnExpression: expression in x and y using **, sin, cos, exp, sqrt, abs, pi, e.
+    Examples: "x**2+y**2", "x**2-y**2", "sin(sqrt(x**2+y**2))", "exp(-(x**2+y**2))"
+  domain: [[xMin,xMax],[yMin,yMax]] — symmetric range that shows the key feature.
+    Typical: [[-2,2],[-2,2]] for polynomials, [[-3.14,3.14],[-3.14,3.14]] for trig surfaces.
+  showTangentPlane: true when concept involves tangent planes, differentiability, gradient.
+    Renders an interactive amber plane tangent to the surface at 'point', with gradient arrow.
+    Set true for: "tangent plane", "gradient of f", "directional derivative", "differential".
+  showGradient: true to show the gradient arrow at 'point' (lighter than full tangent plane).
+  point: [x, y] coordinates of the highlighted/interactive point. Choose a non-degenerate
+    point where the gradient is interesting (avoid exact maxima/minima when showing gradient).
+  COMMON SURFACES:
+    Paraboloid (bowl): "x**2 + y**2", [[-2,2],[-2,2]]
+    Saddle: "x**2 - y**2", [[-2,2],[-2,2]]
+    Monkey saddle: "x**3 - 3*x*y**2", [[-1.5,1.5],[-1.5,1.5]]
+    Gaussian bump: "exp(-(x**2+y**2))", [[-2.5,2.5],[-2.5,2.5]]
+    Ripple: "sin(sqrt(x**2+y**2))", [[-6,6],[-6,6]]
+    Cone: "sqrt(x**2+y**2)", [[-2,2],[-2,2]]
+    Helicoid: "x*sin(y) - y*cos(x)", [[-3,3],[-3,3]] (approximate)
 
 For "set-diagram":
   "params": {

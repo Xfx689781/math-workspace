@@ -28,7 +28,7 @@ export interface SolveStep {
 }
 
 export interface VisualConfig {
-  type: 'basics-plot' | 'topology-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph' | 'set-diagram' | 'riemann-sum' | 'epsilon-delta' | 'level-set' | 'gram-schmidt' | 'group-orbit';
+  type: 'basics-plot' | 'topology-3d' | 'surface-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph' | 'set-diagram' | 'riemann-sum' | 'epsilon-delta' | 'level-set' | 'gram-schmidt' | 'group-orbit';
   subdomainLabel: string;
   data: {
     title: string;

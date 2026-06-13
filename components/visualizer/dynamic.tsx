@@ -13,6 +13,7 @@ import EpsilonDeltaVisualizer from './epsilondelta';
 import LevelSetVisualizer from './levelset';
 import GramSchmidtVisualizer from './gramschmidt';
 import GroupOrbitVisualizer from './grouporbit';
+import Surface3DVisualizer from './surface3d';
 
 const EN = {
   heroTheorem: 'What theorem shall we explore?',
@@ -143,6 +144,7 @@ function renderCanvas(type: string, data: any) {
     case 'level-set':        return <LevelSetVisualizer data={data} />;
     case 'gram-schmidt':     return <GramSchmidtVisualizer data={data} />;
     case 'group-orbit':      return <GroupOrbitVisualizer data={data} />;
+    case 'surface-3d':       return <Surface3DVisualizer data={data} />;
     default: return null;
   }
 }
@@ -241,9 +243,13 @@ function CanvasResult() {
           )}
         </div>
 
-        {/* Canvas */}
+        {/* Canvas — taller for 3D types */}
         {canvas && (
-          <div className="h-[280px] rounded-2xl overflow-hidden border border-zinc-900 bg-zinc-950/20">
+          <div className={`rounded-2xl overflow-hidden border border-zinc-900 bg-zinc-950/20 ${
+            visualConfig.type === 'topology-3d' || visualConfig.type === 'surface-3d'
+              ? 'h-[400px]'
+              : 'h-[290px]'
+          }`}>
             {canvas}
           </div>
         )}
