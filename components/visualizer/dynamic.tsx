@@ -14,6 +14,7 @@ import LevelSetVisualizer from './levelset';
 import GramSchmidtVisualizer from './gramschmidt';
 import GroupOrbitVisualizer from './grouporbit';
 import Surface3DVisualizer from './surface3d';
+import Region2DVisualizer from './region2d';
 
 const EN = {
   heroTheorem: 'What theorem shall we explore?',
@@ -145,6 +146,7 @@ function renderCanvas(type: string, data: any) {
     case 'gram-schmidt':     return <GramSchmidtVisualizer data={data} />;
     case 'group-orbit':      return <GroupOrbitVisualizer data={data} />;
     case 'surface-3d':       return <Surface3DVisualizer data={data} />;
+    case 'region-2d':        return <Region2DVisualizer data={data} />;
     default: return null;
   }
 }
@@ -220,7 +222,7 @@ function TextOnlyResult() {
 
 // ── Canvas layout: visualization + definition + steps ──
 function CanvasResult() {
-  const { visualConfig, steps, language, appMode } = useMathStore();
+  const { visualConfig, allVisualConfigs, activeVisualIdx, setActiveVisualIdx, steps, language, appMode } = useMathStore();
   const t = language === 'zh' ? ZH : EN;
   const isTheorem = appMode === 'theorem';
   if (!visualConfig) return null;
@@ -232,8 +234,8 @@ function CanvasResult() {
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
 
         {/* Label row */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] font-mono tracking-[0.25em] text-blue-500/80 bg-blue-950/30 border border-blue-900/30 px-2.5 py-1 rounded-md uppercase">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[9px] font-mono tracking-[0.25em] text-blue-500/80 bg-blue-950/30 border border-blue-900/30 px-2.5 py-1 rounded-md uppercase shrink-0">
             {visualConfig.subdomainLabel}
           </span>
           {visualConfig.data?.title && (
@@ -242,6 +244,24 @@ function CanvasResult() {
             </span>
           )}
         </div>
+
+        {/* Visualization tabs — shown when Claude returned multiple configs */}
+        {allVisualConfigs.length > 1 && (
+          <div className="flex gap-1 flex-wrap">
+            {allVisualConfigs.map((vc, i) => (
+              <button key={i} onClick={() => setActiveVisualIdx(i)}
+                className={`text-[9px] font-mono px-2.5 py-1 rounded-lg border transition-all ${
+                  i === activeVisualIdx
+                    ? 'border-blue-700/70 bg-blue-950/30 text-blue-300'
+                    : 'border-zinc-800 text-zinc-600 hover:text-zinc-400 hover:border-zinc-700'
+                }`}>
+                {vc.data.title
+                  ? vc.data.title.replace(/^[\(\[]?[a-dA-D][\)\]\.]\s*/, '').slice(0, 22)
+                  : `Part ${String.fromCharCode(65 + i)}`}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Canvas — taller for 3D types */}
         {canvas && (

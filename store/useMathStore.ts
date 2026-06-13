@@ -28,7 +28,7 @@ export interface SolveStep {
 }
 
 export interface VisualConfig {
-  type: 'basics-plot' | 'topology-3d' | 'surface-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph' | 'set-diagram' | 'riemann-sum' | 'epsilon-delta' | 'level-set' | 'gram-schmidt' | 'group-orbit';
+  type: 'basics-plot' | 'topology-3d' | 'surface-3d' | 'algebra-sequence' | 'analysis-space' | 'discrete-graph' | 'set-diagram' | 'riemann-sum' | 'epsilon-delta' | 'level-set' | 'gram-schmidt' | 'group-orbit' | 'region-2d';
   subdomainLabel: string;
   data: {
     title: string;
@@ -49,6 +49,8 @@ interface MathStore {
   edges: MathEdge[];
   activeNodeId: string | null;
   visualConfig: VisualConfig | null;
+  allVisualConfigs: VisualConfig[];
+  activeVisualIdx: number;
   cachedConfigs: Record<string, any>;
   subdomainLabel: string;
   steps: SolveStep[];
@@ -61,6 +63,7 @@ interface MathStore {
   setCurrentQuery: (query: string) => void;
   setActiveNode: (id: string | null) => void;
   setErrorMessage: (msg: string | null) => void;
+  setActiveVisualIdx: (idx: number) => void;
   executeSolver: () => Promise<void>;
   setNodes: (nodes: MathNode[]) => void;
   setEdges: (edges: MathEdge[]) => void;
@@ -76,6 +79,8 @@ export const useMathStore = create<MathStore>((set, get) => ({
   edges: [],
   activeNodeId: null,
   visualConfig: null,
+  allVisualConfigs: [],
+  activeVisualIdx: 0,
   cachedConfigs: {},
   subdomainLabel: 'Telemetry_Idle',
   steps: [],
@@ -89,6 +94,12 @@ export const useMathStore = create<MathStore>((set, get) => ({
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setErrorMessage: (msg) => set({ errorMessage: msg }),
+
+  setActiveVisualIdx: (idx) => {
+    const all = get().allVisualConfigs;
+    const vc = all[idx];
+    if (vc) set({ activeVisualIdx: idx, visualConfig: vc });
+  },
 
   setActiveNode: (id) => {
     if (!id) { set({ activeNodeId: null, visualConfig: null }); return; }
@@ -150,15 +161,11 @@ export const useMathStore = create<MathStore>((set, get) => ({
         ...edge, animated: true, style: { stroke: '#3f3f46', strokeWidth: 1.5 }
       }));
 
-      // Build visualConfig directly from the first entry in visualConfigs.
-      // Do NOT rely on node IDs matching visualConfigs keys — Claude often uses
-      // different IDs in each, causing a silent mismatch that leaves visualConfig null.
+      // Build the full list of visualConfigs (one per part for multi-part problems).
       const configs: Record<string, any> = blueprint.visualConfigs || {};
-      const firstKey = Object.keys(configs)[0];
-      const cfg = firstKey ? configs[firstKey] : null;
       const subLabel = blueprint.subdomainLabel || 'MATHEMATICS';
 
-      const visualConfig: VisualConfig | null = cfg ? {
+      const toVC = (cfg: any): VisualConfig => ({
         type: cfg.type,
         subdomainLabel: subLabel,
         data: {
@@ -168,7 +175,14 @@ export const useMathStore = create<MathStore>((set, get) => ({
           interactiveType: cfg.interactiveType || '',
           params: cfg.params || {},
         },
-      } : null;
+      });
+
+      const allVisualConfigs: VisualConfig[] = Object.values(configs)
+        .filter((cfg: any) => cfg?.type)
+        .map((cfg: any) => toVC(cfg));
+
+      const visualConfig = allVisualConfigs[0] ?? null;
+      const firstKey = Object.keys(configs)[0];
 
       set({
         activeDomain: blueprint.activeDomain || 'basics',
@@ -178,6 +192,8 @@ export const useMathStore = create<MathStore>((set, get) => ({
         activeNodeId: firstKey || (layoutNodes[0]?.id ?? null),
         cachedConfigs: configs,
         steps: blueprint.steps || [],
+        allVisualConfigs,
+        activeVisualIdx: 0,
         visualConfig,
         isSolving: false,
       });

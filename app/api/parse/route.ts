@@ -105,11 +105,29 @@ RULE 2c — LINEAR ALGEBRA GEOMETRY  → type: "gram-schmidt"  (MUST include "mo
     EXAMPLES: "orthogonal complement", "W⊥", "V = W ⊕ W⊥", "orthogonal decomposition",
     "orthogonal complement theorem", "direct sum decomposition into W and W-perp".
 
-RULE 3 — TOPOLOGY OF SETS IN ℝⁿ  → type: "set-diagram"
-  Use when query involves ANY of: compactness, Heine-Borel, open covers, finite subcovers,
-  closed sets, bounded sets, Bolzano-Weierstrass, Baire category, metric balls, neighborhoods,
-  connectedness, open/closed sets in ℝⁿ.
-  EXAMPLES: "Heine-Borel theorem", "compactness", "Bolzano-Weierstrass".
+RULE 2d — REGION / SET ANALYSIS IN ℝ²  → type: "region-2d"
+  Use when a problem or concept asks to ANALYZE, COMPARE, or CLASSIFY specific subsets of ℝ²:
+  • "Which of these regions is regular / open / closed / bounded / connected / simply-connected?"
+  • Classifying sets by their topological properties (interior, closure, boundary, ∂S, int(S))
+  • Multi-part problems where each part is a DIFFERENT specific region (disk, annulus, rectangle,
+    complement, half-plane, punctured plane, etc.) that needs side-by-side visual comparison.
+  • Questions of the form "classify each of A, B, C, D", "which of the following are compact?",
+    "determine the interior/closure/boundary of each region".
+  NEVER use for open cover proofs (→ set-diagram), abstract topology theorems without specific
+  regions, function plots, or single-region definitions.
+  EXAMPLES: "which regions are regular open?", "classify int(S), cl(S) for each region",
+  "open/closed analysis of the annulus, disk, complement-disk", "regular regions in ℝ²".
+  KEY: When the problem has PARTS (a)(b)(c) each being a different region → make ONE region-2d
+  with all regions in the 'regions' array (up to 4), one entry per part.
+
+RULE 3 — COMPACTNESS / OPEN COVER PROOFS  → type: "set-diagram"
+  Use ONLY for: compactness arguments using open covers, Heine-Borel theorem (closed+bounded→compact),
+  finite subcover arguments, Bolzano-Weierstrass theorem, Baire category theorem, compactness
+  in metric spaces via open balls, sequential compactness.
+  DO NOT use for: "is this set open/closed/bounded?" questions (→ region-2d),
+  "interior/closure/boundary of S" (→ region-2d), or general topology definitions.
+  EXAMPLES: "Heine-Borel theorem", "compactness via open covers", "Bolzano-Weierstrass",
+  "every open cover of K=[0,1] has a finite subcover", "Baire category theorem".
 
 RULE 4 — SURFACE / MANIFOLD TOPOLOGY  → type: "topology-3d"
   Use ONLY when query involves topological classification of surfaces or manifolds:
@@ -269,6 +287,56 @@ For "surface-3d":
     Cone: "sqrt(x**2+y**2)", [[-2,2],[-2,2]]
     Helicoid: "x*sin(y) - y*cos(x)", [[-3,3],[-3,3]] (approximate)
 
+For "region-2d":
+  "params": {
+    "label": "Regular Regions in ℝ²",
+    "note": "A region is regular open iff int(cl(S)) = S.",
+    "regions": [
+      {
+        "type": "disk",
+        "label": "(a) Open disk B(0,1)",
+        "cx": 0, "cy": 0, "r": 1,
+        "filled": true, "boundary": "dashed", "color": "#3b82f6",
+        "verdict": "Regular open", "verdictColor": "green"
+      },
+      {
+        "type": "annulus",
+        "label": "(b) Annulus 1<|z|<2",
+        "cx": 0, "cy": 0, "r": 0.6, "r2": 1.4,
+        "filled": true, "boundary": "dashed", "color": "#8b5cf6",
+        "verdict": "Regular open", "verdictColor": "green"
+      },
+      {
+        "type": "disk",
+        "label": "(c) Closed disk B̄(0,1)",
+        "cx": 0, "cy": 0, "r": 1,
+        "filled": true, "boundary": "solid", "color": "#ef4444",
+        "verdict": "Not regular open", "verdictColor": "red"
+      },
+      {
+        "type": "complement-disk",
+        "label": "(d) Complement ℝ²\\B̄",
+        "cx": 0, "cy": 0, "r": 0.8,
+        "filled": true, "boundary": "dashed", "color": "#f59e0b",
+        "verdict": "Regular open", "verdictColor": "green"
+      }
+    ]
+  }
+  SCHEMA for each region object:
+    type: "disk" | "annulus" | "rect" | "curve" | "point" | "half-plane" | "complement-disk"
+    cx, cy: center in math coords (range -2..2; 0 is center of canvas). Default: 0,0.
+    r: radius (0.3..1.6). r2: outer radius for annulus (must be > r).
+    x1,y1,x2,y2: corners for rect type.
+    axis, side, val: for half-plane (axis:"x"|"y", side:"gt"|"lt", val in -2..2).
+    filled: true=fill region, false=boundary only (default true).
+    boundary: "solid" (included boundary), "dashed" (excluded boundary), "dotted", "none".
+    color: hex color for this region (choose distinct colors for different parts).
+    label: short description shown below the panel.
+    verdict: verdict text shown in badge (e.g. "Regular open", "Compact", "Closed", "Open").
+    verdictColor: "green" | "red" | "amber" | "neutral".
+  LIMITS: max 4 regions in one visualConfig. For comparisons with more parts, use the 4 most
+    informative. Use size SC=40px/unit so r=1.0 fills about half the panel width.
+
 For "set-diagram":
   "params": {
     "setType": "closed-disk" | "closed-rect",
@@ -388,7 +456,39 @@ For problem queries: focus on worked computation.
   2. "calculation" — Each computational step shown explicitly with numbers.
   3. "key-step"    — Any non-trivial mathematical insight required.
   4. "conclusion"  — State the final answer clearly in a $$ ... $$ block.
-Example field: include a verification check or related example when useful.`;
+Example field: include a verification check or related example when useful.
+
+━━━ MULTI-PART PROBLEM VISUALIZATION ━━━
+When a problem has MULTIPLE PARTS (a)(b)(c)(d)..., generate ONE visualConfig per part
+in the "visualConfigs" object, keyed as "part_a", "part_b", "part_c", etc.:
+  "visualConfigs": {
+    "part_a": { "type": "region-2d", "title": "(a) Open Disk", "params": { "regions": [...] }, ... },
+    "part_b": { "type": "surface-3d", "title": "(b) Paraboloid", "params": {...}, ... },
+    "part_c": { "type": "gram-schmidt", "title": "(c) Projection", "params": {...}, ... }
+  }
+The UI will show clickable tabs labeled by each visualConfig's title.
+
+HOWEVER: When all parts of the problem are COMPARABLE 2D REGIONS (e.g. "classify each of these
+4 subsets of ℝ²"), prefer a SINGLE "region-2d" config with ALL regions in the 'regions' array
+(max 4) — side-by-side panels are more informative than separate tabs for region comparison.
+  "visualConfigs": {
+    "main": {
+      "type": "region-2d",
+      "title": "Region Comparison",
+      "params": {
+        "regions": [
+          {"type":"disk", "label":"(a) Open disk", ...},
+          {"type":"annulus", "label":"(b) Annulus", ...},
+          {"type":"rect", "label":"(c) Rectangle", ...},
+          {"type":"complement-disk", "label":"(d) Complement", ...}
+        ]
+      }
+    }
+  }
+
+Choose visualizations that MATCH each part's content — do NOT reuse the same type for all parts.
+Parts asking about: region properties → region-2d; surfaces/graphs → surface-3d;
+projection/orthogonality → gram-schmidt; group structure → group-orbit; sequences → analysis-space.`;
 
 export async function POST(req: Request) {
   try {
