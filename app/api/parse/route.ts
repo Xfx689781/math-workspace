@@ -83,12 +83,27 @@ RULE 2b — IMPLICIT FUNCTIONS / LEVEL SETS  → type: "level-set"
   EXAMPLES: "implicit function theorem", "隐函数定理", "level set F(x,y)=0",
   "gradient is normal to level curves", "locally express y as a function of x".
 
-RULE 2c — GRAM-SCHMIDT / ORTHOGONAL PROJECTION  → type: "gram-schmidt"
-  Use when query involves ANY of: Gram-Schmidt orthogonalization (Schmidt正交化 / 格拉姆-施密特),
-  constructing an orthonormal basis, orthogonal projection onto a subspace,
-  QR decomposition, expressing a vector as sum of orthogonal components.
-  EXAMPLES: "Gram-Schmidt process", "Schmidt正交化", "格拉姆-施密特",
-  "orthonormal basis from linearly independent vectors", "QR decomposition".
+RULE 2c — LINEAR ALGEBRA GEOMETRY  → type: "gram-schmidt"  (MUST include "mode" param)
+  Use for all orthogonality geometry in ℝ². CRITICAL: pick the right mode — each shows
+  a completely different visualization. Wrong mode = wrong picture.
+
+  mode: "gram-schmidt"  ← the actual Gram-Schmidt PROCESS (turning vectors into a basis)
+    Use ONLY for: Gram-Schmidt orthogonalization (Schmidt正交化 / 格拉姆-施密特),
+    constructing an orthonormal basis from linearly independent vectors, QR decomposition.
+    EXAMPLES: "Gram-Schmidt process", "Schmidt正交化", "QR decomposition",
+    "orthonormal basis from v₁,v₂".
+
+  mode: "projection"  ← projecting a vector ONTO a subspace (best approximation)
+    Use ONLY for: orthogonal projection of a vector onto a subspace, best approximation
+    in a subspace, least squares projection, projection formula.
+    EXAMPLES: "orthogonal projection onto a subspace", "projection of v onto W",
+    "best approximation theorem", "projection onto a line", "least squares interpretation".
+
+  mode: "complement"  ← orthogonal complement W⊥ and the decomposition V = W ⊕ W⊥
+    Use ONLY for: orthogonal complement W⊥, orthogonal direct sum V = W ⊕ W⊥,
+    orthogonal decomposition theorem, every v decomposes as v = proj_W(v) + proj_{W⊥}(v).
+    EXAMPLES: "orthogonal complement", "W⊥", "V = W ⊕ W⊥", "orthogonal decomposition",
+    "orthogonal complement theorem", "direct sum decomposition into W and W-perp".
 
 RULE 3 — TOPOLOGY OF SETS IN ℝⁿ  → type: "set-diagram"
   Use when query involves ANY of: compactness, Heine-Borel, open covers, finite subcovers,
@@ -173,14 +188,39 @@ For "level-set":
   a,b: initial point to highlight, ideally on or near the curve.
   EXAMPLES: circle → "x**2 + y**2", level=1; parabola → "y - x**2", level=0.
 
-For "gram-schmidt":
+For "gram-schmidt" — ALWAYS include "mode". Choose based on concept, not convenience.
+
+  mode "gram-schmidt" (Gram-Schmidt orthogonalization / QR / orthonormal basis):
   "params": {
+    "mode": "gram-schmidt",
     "vectors": [[1.5, 0.4], [0.4, 1.5]],
     "labels": ["v₁", "v₂"],
+    "label": "Gram-Schmidt in ℝ²",
     "note": "e₁ = v₁/‖v₁‖, e₂ = normalize(v₂ − ⟨v₂,e₁⟩e₁)"
   }
-  vectors: array of 2 vectors in ℝ², each [x, y]. Keep magnitudes in [0.5, 2.2].
-  labels: display names for the input vectors.
+  vectors: 2 linearly independent vectors in ℝ², magnitudes in [0.5, 2.2].
+
+  mode "projection" (projection of v onto subspace W):
+  "params": {
+    "mode": "projection",
+    "w": [1.2, 0.4],
+    "v": [0.8, 1.3],
+    "label": "Projection onto W",
+    "note": "proj_W(v) is the closest point in W to v."
+  }
+  w: direction vector of 1D subspace W (not necessarily unit). v: vector to project.
+  Keep both magnitudes in [0.4, 2.0]. Choose w and v so they are not parallel.
+
+  mode "complement" (orthogonal complement W⊥ and V = W ⊕ W⊥):
+  "params": {
+    "mode": "complement",
+    "w": [1.2, 0.4],
+    "v": [0.5, 1.4],
+    "label": "V = W ⊕ W⊥",
+    "note": "Every v decomposes uniquely as v = proj_W(v) + proj_{W⊥}(v)."
+  }
+  w: direction vector of W. v: a sample vector showing the decomposition.
+  Keep both magnitudes in [0.4, 2.0]. Choose v not aligned with w or w⊥.
 
 For "set-diagram":
   "params": {
